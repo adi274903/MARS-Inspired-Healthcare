@@ -233,3 +233,22 @@ button { cursor: pointer; }
 }
 :root[data-theme="dark"] .logos img.logo-on-light { display: none; }
 :root[data-theme="dark"] .logos img.logo-on-dark { display: block; }
+
+/* About dialog */
+.about { border: 1px solid var(--line); border-radius: 18px; background: var(--surface); color: var(--ink); padding: 28px 30px 24px; width: min(560px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); box-shadow: 0 24px 60px rgba(0,0,0,.35); }
+.about::backdrop { background: rgba(0,0,0,.45); }
+.about-close { position: absolute; top: 12px; right: 14px; margin: 0; }
+.about-close button { background: none; border: 0; font-size: 26px; line-height: 1; color: var(--ink-2); padding: 4px 8px; border-radius: 8px; }
+.about-close button:hover { background: var(--surface-2); color: var(--ink); }
+.about-logos { margin-bottom: 18px; }
+.about-logos img { height: 18px; } .about-logos img.logo-cmu { height: 14px; }
+.about h2 { font-family: var(--serif); font-weight: 500; font-size: 30px; letter-spacing: -.01em; line-height: 1.15; margin: 0 0 10px; }
+.about h3 { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); margin: 22px 0 8px; }
+.about p { margin: 0 0 10px; color: var(--ink-2); }
+.about p b { color: var(--ink); font-weight: 600; }
+.about .lede { font-size: 16.5px; color: var(--ink); }
+.about .people { list-style: none; padding: 0; margin: 0 0 4px; display: flex; flex-wrap: wrap; gap: 8px; }
+.about .people li { border: 1px solid var(--line); border-radius: 999px; padding: 5px 14px; background: var(--bg); }
+.btn-link { display: inline-block; margin-top: 18px; padding: 9px 16px; border-radius: 10px; background: var(--accent); color: var(--accent-ink); text-decoration: none; font-weight: 500; font-size: 14px; }
+.btn-link:hover { opacity: .9; }
+.about .fine { margin: 20px 0 0; font-size: 12px; color: var(--ink-3); }

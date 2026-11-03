@@ -98,6 +98,8 @@
     });
   }
   $("#histSearch").addEventListener("input", e => { histQuery = e.target.value; renderHistory(); });
+  $("#aboutBtn").onclick = () => { $("#about").showModal(); app.classList.remove("open"); };
+  $("#about").addEventListener("click", e => { if (e.target.id === "about") e.target.close(); });
   $("#menuBtn").onclick = () => app.classList.add("open");
   $("#scrim").onclick = () => app.classList.remove("open");
   $("#newChat").onclick = () => { newChat(); app.classList.remove("open"); input.focus(); };

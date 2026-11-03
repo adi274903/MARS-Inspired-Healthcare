@@ -49,6 +49,7 @@
       <button class="icon-btn" id="themeToggle" aria-label="Toggle theme" title="Toggle theme">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
       </button>
+      <button class="btn-ghost" id="aboutBtn" aria-haspopup="dialog">About</button>
       <span class="mode-badge" id="modeBadge">Demo mode</span>
     </div>
   </aside>
@@ -88,6 +89,32 @@
     <div class="rp-body" id="paneSession" role="tabpanel" hidden></div>
   </aside>
 </div>
+
+<dialog class="about" id="about" aria-labelledby="aboutTitle">
+  <form method="dialog" class="about-close"><button aria-label="Close about">&times;</button></form>
+  <div class="logos about-logos">
+    <img class="logo-cmu logo-on-light" src="assets/cmu-wordmark.png" alt="Carnegie Mellon University">
+    <img class="logo-cmu logo-on-dark" src="assets/cmu-wordmark-white.png" alt="Carnegie Mellon University">
+    <span class="sep" aria-hidden="true"></span>
+    <img class="logo-nist logo-on-light" src="assets/nist-logo.svg" alt="National Institute of Standards and Technology">
+    <img class="logo-nist logo-on-dark" src="assets/nist-logo-white.svg" alt="National Institute of Standards and Technology">
+  </div>
+  <h2 id="aboutTitle">MARS &ndash; Healthcare</h2>
+  <p class="lede">An assistant that helps researchers and developers work out what to evaluate, and what to take into account, when building healthcare AI.</p>
+
+  <h3>About MARS</h3>
+  <p><b>MARS</b> is the <b>Model-Agnostic Rigorous Sandbox</b>, an open-source testing and evaluation environment for AI system measurement from the CMU&ndash;NIST AI Measurement Science &amp; Engineering Cooperative Research Center (AIMSEC). It splits an evaluation into three modular parts: a <b>Corpus</b> of test cases, a <b>Workflow</b> that runs the system under test, and an <b>Umpire</b> that assesses the outputs. This project brings that measurement-first approach to healthcare AI.</p>
+
+  <h3>Team</h3>
+  <ul class="people">
+    <li><b>Holly Wiberg</b></li>
+    <li><b>Rema Padman</b></li>
+  </ul>
+
+  <a class="btn-link" href="https://www.cmu.edu/aimsec/news-and-events/blog-introducing-mars.html" target="_blank" rel="noopener noreferrer">Read &ldquo;Introducing MARS&rdquo; on the AIMSEC blog &nearr;</a>
+
+  <p class="fine">This interface currently runs on demo answers unless a back end is connected. It offers research and development guidance only, not legal, regulatory or clinical advice.</p>
+</dialog>
 <script src="api.js"></script>
 <script src="app.js"></script>
 </body>

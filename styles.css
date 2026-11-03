@@ -217,3 +217,19 @@ button { cursor: pointer; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
 @media print { .sidebar, .composer-wrap, .topbar, .actions, .card-foot { display: none; } .app { display: block; height: auto; } .thread { overflow: visible; } }
+
+/* CMU-NIST AIMSEC co-brand */
+.cobrand { border-top: 1px solid var(--line); padding: 14px 6px 0; margin-top: -6px; }
+.cobrand p { margin: 8px 0 0; font-size: 11px; line-height: 1.4; color: var(--ink-3); }
+.cobrand p b { color: var(--ink-2); font-weight: 600; margin-right: 4px; }
+.logos { display: flex; align-items: center; gap: 10px; }
+.logos img { display: block; height: 13px; width: auto; }
+.logos img.logo-cmu { height: 11px; }
+.logos .sep { width: 1px; height: 18px; background: var(--line); }
+.logos img.logo-on-dark { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .logos img.logo-on-light { display: none; }
+  :root:not([data-theme="light"]) .logos img.logo-on-dark { display: block; }
+}
+:root[data-theme="dark"] .logos img.logo-on-light { display: none; }
+:root[data-theme="dark"] .logos img.logo-on-dark { display: block; }

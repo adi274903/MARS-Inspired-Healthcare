@@ -1,0 +1,30 @@
+{"id": "s2-01", "suite": "S2", "topic": "sepsis", "question": "What should I evaluate for a sepsis prediction model?"}
+{"id": "s2-02", "suite": "S2", "topic": "readmission", "question": "Which metrics are reported for readmission risk models in cardiology?"}
+{"id": "s2-03", "suite": "S2", "topic": "radiology", "question": "How should I design external validation for a radiology triage model?"}
+{"id": "s2-04", "suite": "S2", "topic": "deterioration", "question": "How do studies detect deterioration from nursing notes?"}
+{"id": "s2-05", "suite": "S2", "topic": "calibration", "question": "Which studies report calibration for deep learning diagnosis models?"}
+{"id": "s2-06", "suite": "S2", "topic": "deployment", "question": "What should an evaluation plan cover before a prospective deployment?"}
+{"id": "s2-07", "suite": "S2", "topic": "validation", "question": "How do prognosis studies handle temporal validation?"}
+{"id": "s2-08", "suite": "S2", "topic": "llm", "question": "What approaches exist for evaluating large language models on clinical documentation?"}
+{"id": "s2-09", "suite": "S2", "topic": "uncertainty", "question": "How should I report uncertainty for a binary classification clinical model?"}
+{"id": "s2-10", "suite": "S2", "topic": "pediatrics", "question": "Which validation strategies appear in pediatric sepsis screening studies?"}
+{"id": "s2-11", "suite": "S2", "topic": "cds", "question": "What should I measure when evaluating a clinical decision support tool for triage?"}
+{"id": "s2-12", "suite": "S2", "topic": "oncology", "question": "How do oncology studies evaluate AI models for early detection?"}
+{"id": "s2-13", "suite": "S2", "topic": "pathology", "question": "Which evaluation practices are reported for pathology foundation models?"}
+{"id": "s2-14", "suite": "S2", "topic": "monitoring", "question": "What metrics matter for a patient monitoring model in emergency care?"}
+{"id": "s2-15", "suite": "S2", "topic": "fairness", "question": "How should I evaluate subgroup performance in a mental health prediction model?"}
+{"id": "s2-16", "suite": "S2", "topic": "deployment", "question": "Which papers discuss silent deployment of prediction models in hospitals?"}
+{"id": "s2-17", "suite": "S2", "topic": "generative", "question": "What should I consider when evaluating a generative model for patient education?"}
+{"id": "s2-18", "suite": "S2", "topic": "workflow", "question": "How are clinician workflow outcomes measured for radiology AI?"}
+{"id": "s2-19", "suite": "S2", "topic": "diabetes", "question": "Which evaluation approaches do studies use for multi-site diabetes risk models?"}
+{"id": "s2-20", "suite": "S2", "topic": "surgery", "question": "What should I evaluate in a model that predicts surgical complications?"}
+{"id": "s2-21", "suite": "S2", "topic": "interpretability", "question": "How do studies report interpretability for critical care predictions?"}
+{"id": "s2-22", "suite": "S2", "topic": "llm", "question": "Which benchmark practices appear for foundation models on clinical text?"}
+{"id": "s2-23", "suite": "S2", "topic": "triage", "question": "What should I check before trusting reported performance of a triage model?"}
+{"id": "s2-24", "suite": "S2", "topic": "stroke", "question": "How do studies of stroke imaging models validate their results?"}
+{"id": "s2-25", "suite": "S2", "topic": "medication", "question": "What evaluation is needed for a prescription risk model at discharge?"}
+{"id": "s2-26", "suite": "S2", "topic": "summarisation", "question": "How should I evaluate a model that summarizes discharge letters?"}
+{"id": "s2-27", "suite": "S2", "topic": "mortality", "question": "What should I evaluate for a mortality prediction model in the ICU?"}
+{"id": "s2-28", "suite": "S2", "topic": "prospective", "question": "Which validation designs appear in prospective studies of clinical AI?"}
+{"id": "s2-29", "suite": "S2", "topic": "registry", "question": "How do studies handle data quality when validating a national registry model?"}
+{"id": "s2-30", "suite": "S2", "topic": "screening", "question": "What pitfalls should I avoid when evaluating a screening model on retrospective data?"}

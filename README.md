@@ -44,6 +44,8 @@ and optionally a Neo4j graph).
 
 📐 **Diagram:** [Architecture diagram](#architecture-diagram) — one-question flow plus the full nine-service map.
 
+🎬 **Demo video:** [`demo/evalbot-demo.mp4`](demo/evalbot-demo.mp4) — 20 s, captured from the live stack (streaming answer, citation panel, SQL aggregate). Open [`demo/preview.html`](demo/preview.html) to play it locally; rebuild with `python scripts/build_demo_video.py <shots…>`.
+
 ## Topology
 
 ```

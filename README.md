@@ -44,7 +44,7 @@ and optionally a Neo4j graph).
 
 📐 **Diagram:** [Architecture diagram](#architecture-diagram) — one-question flow plus the full nine-service map.
 
-🎬 **Demo video:** [`demo/evalbot-demo.mp4`](demo/evalbot-demo.mp4) — 20 s, captured from the live stack (streaming answer, citation panel, SQL aggregate). Open [`demo/preview.html`](demo/preview.html) to play it locally; rebuild with `python scripts/build_demo_video.py <shots…>`.
+🎬 **Demo video:** [`demo/evalbot-demo.mp4`](demo/evalbot-demo.mp4) — 32 s showing what the assistant *does*: ask "what should I evaluate for a sepsis-prediction model?" → it plans the evaluation (metrics, validation tiers, interpretability), returns a 10-item checklist, and every item is traceable to a PubMed paper or a GUIDANCE/LAW card (TRIPOD+AI), then a corpus count answered from SQL. Open [`demo/preview.html`](demo/preview.html) to play it; rebuild with `python scripts/build_demo_video.py <shots…>`.
 
 ## Topology
 

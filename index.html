@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EvalBot · Healthcare AI Evaluation Assistant</title>
+<meta name="description" content="Work out what to evaluate and consider when building healthcare AI.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230f766e'/%3E%3Cpath d='M16 7v18M7 16h18' stroke='white' stroke-width='3.5' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app" id="app">
+  <aside class="sidebar" id="sidebar" aria-label="Conversations">
+    <div class="brand">
+      <span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></span>
+      <span class="brand-name">EvalBot</span>
+    </div>
+    <button class="btn-new" id="newChat">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      New evaluation
+    </button>
+
+    <div class="side-section">
+      <h2 class="side-title">Focus areas</h2>
+      <div class="domains" id="domains"></div>
+    </div>
+
+    <div class="side-section grow">
+      <h2 class="side-title">History</h2>
+      <input class="hist-search" id="histSearch" type="search" placeholder="Search conversations" aria-label="Search conversations">
+      <nav class="history" id="history"></nav>
+    </div>
+
+    <div class="side-foot">
+      <button class="icon-btn" id="themeToggle" aria-label="Toggle theme" title="Toggle theme">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      </button>
+      <span class="mode-badge" id="modeBadge">Demo mode</span>
+    </div>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+
+  <main class="main">
+    <header class="topbar">
+      <button class="icon-btn menu-btn" id="menuBtn" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+      <h1 class="topbar-title" id="chatTitle">New evaluation</h1>
+      <button class="btn-ghost" id="exportChat">Export</button>
+      <button class="btn-ghost" id="panelToggle" aria-expanded="true" aria-controls="rightPanel">Sources</button>
+    </header>
+
+    <section class="thread" id="thread" aria-live="polite" aria-label="Conversation"></section>
+
+    <footer class="composer-wrap">
+      <div class="context-row" id="contextRow"></div>
+      <form class="composer" id="composer">
+        <textarea id="input" rows="1" placeholder="Describe your system or ask a question…" aria-label="Message"></textarea>
+        <button class="send" id="send" type="submit" aria-label="Send">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+        </button>
+      </form>
+      <p class="disclaimer">For research and development guidance only. Not legal, regulatory or clinical advice. Verify against primary sources.</p>
+    </footer>
+  </main>
+
+  <aside class="rpanel" id="rightPanel" aria-label="Sources and session">
+    <div class="rp-tabs" role="tablist">
+      <button role="tab" id="tabSources" aria-selected="true" aria-controls="paneSources">Sources <span class="count" id="srcCount">0</span></button>
+      <button role="tab" id="tabSession" aria-selected="false" aria-controls="paneSession">Session</button>
+      <button class="icon-btn rp-close" id="panelClose" aria-label="Close panel">&times;</button>
+    </div>
+    <div class="rp-body" id="paneSources" role="tabpanel"></div>
+    <div class="rp-body" id="paneSession" role="tabpanel" hidden></div>
+  </aside>
+</div>
+<script src="api.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

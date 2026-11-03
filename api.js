@@ -226,3 +226,62 @@ window.sendMessage = async function sendMessage({ messages, context }) {
   }
   return reply;
 };
+
+// ── streaming transport ────────────────────────────────────────────────────
+// Posts to /api/chat/stream and consumes SSE frames: meta -> delta* -> done|error.
+// Returns false when the endpoint is missing or the browser cannot stream, so the
+// caller can fall back to window.sendMessage() (non-streaming) untouched.
+window.sendStream = async function sendStream({ messages, context, onMeta, onDelta, onDone, onError, signal }) {
+  const cfg = window.EVALBOT_CONFIG;
+  const url = cfg.STREAM_URL || (cfg.API_URL ? String(cfg.API_URL).replace(/\/api\/chat\/?$/, "/api/chat/stream") : "");
+  if (!url || typeof ReadableStream === "undefined" || !ReadableStream.prototype.getReader) return false;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ messages, context }),
+    signal
+  });
+  if (res.status === 404 || res.status === 501 || res.status === 405) return false;
+  if (!res.ok || !res.body) throw new Error("Request failed (" + res.status + ")");
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let settled = false;
+
+  const dispatch = frame => {
+    const lines = frame.split(/\r?\n/);
+    let name = "message";
+    const data = [];
+    for (const line of lines) {
+      if (line.startsWith("event:")) name = line.slice(6).trim();
+      else if (line.startsWith("data:")) data.push(line.slice(5).trim());
+    }
+    if (!data.length) return;
+    let payload;
+    try { payload = JSON.parse(data.join("\n")); } catch { return; }
+    if (name === "meta" && onMeta) onMeta(payload);
+    else if (name === "delta" && onDelta) onDelta(payload.text || "");
+    else if (name === "done") { settled = true; if (onDone) onDone(payload); }
+    else if (name === "error") { settled = true; if (onError) onError(payload); }
+  };
+
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let cut;
+      while ((cut = buffer.indexOf("\n\n")) !== -1) {
+        const frame = buffer.slice(0, cut);
+        buffer = buffer.slice(cut + 2);
+        if (frame.trim()) dispatch(frame);
+      }
+    }
+    if (buffer.trim()) dispatch(buffer);
+  } finally {
+    try { reader.releaseLock(); } catch (_) {}
+  }
+  return settled ? true : "closed";
+};

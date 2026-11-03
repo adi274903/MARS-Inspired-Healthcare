@@ -1,3 +1,10 @@
 .claude/
 .pi/
 *.xlsx
+.venv/
+data/
+events/
+__pycache__/
+*.pyc
+.pytest_cache/
+.env

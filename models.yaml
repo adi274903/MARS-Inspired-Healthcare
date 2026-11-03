@@ -1,0 +1,34 @@
+# Model profiles for the Eval Bot runtime (read by core/registry.py).
+#
+# * The API key is NEVER stored here. OPENROUTER_API_KEY comes from the
+#   environment (core/config.py: Settings.openrouter_api_key) and is forwarded
+#   by llm/ to https://openrouter.ai/api/v1 .
+# * The model slug is verified against GET /models at startup: if a slug in this
+#   file is not offered by the provider, the registry logs the mismatch and the
+#   caller falls back through the profile's `fallbacks` list.
+# * Hot swap: rewriting this file (or calling core.registry.set_profile) is picked
+#   up by every process without a restart, because profiles are re-read per call.
+#
+# Profiles:
+#   chat  - the user-facing answer/chat completion
+#   judge - the stricter, deterministic grading/JSON pass
+#   embed - the local embedder used to build the Qdrant index
+profiles:
+  chat:
+    provider: openrouter
+    model: google/gemma-4-26b-a4b-it
+    temperature: 0.2
+    max_tokens: 1200
+    fallbacks:
+      - google/gemma-4-12b-it
+  judge:
+    provider: openrouter
+    model: google/gemma-4-12b-it
+    temperature: 0
+    max_tokens: 400
+    fallbacks: []
+  embed:
+    provider: local
+    model: google/embeddinggemma-2
+    dim: 768
+    device: cpu

@@ -1,0 +1,201 @@
+# Kube-style pod manifest mirroring ./scripts/up.sh (one pod, shared network
+# namespace, redis first). Apply with:
+#
+#   podman play kube scripts/podman_pod.yaml --replace
+#
+# The repo is bind-mounted read-only at /app; each service installs
+# requirements into its own container then execs `python -m services.<name>.main`
+# with BUS=redis. Inside the pod redis is 127.0.0.1:6379.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: evalbot
+  labels:
+    app: evalbot
+spec:
+  restartPolicy: OnFailure
+  hostNetwork: false
+  containers:
+    - name: redis
+      image: docker.io/library/redis:7-alpine
+      ports:
+        - containerPort: 6379
+          hostPort: 6379
+          protocol: TCP
+
+    - name: gateway
+      image: docker.io/library/python:3.12-slim
+      ports:
+        - containerPort: 8080
+          hostPort: 8080
+          protocol: TCP
+      env:
+        - {name: BUS, value: "redis"}
+        - {name: REDIS_URL, value: "redis://127.0.0.1:6379/0"}
+        - {name: PORT, value: "8080"}
+        - {name: PYTHONPATH, value: "/app"}
+        - {name: PYTHONUNBUFFERED, value: "1"}
+      volumeMounts:
+        - {name: repo, mountPath: /app, readOnly: true}
+      workingDir: /app
+      command:
+        - sh
+        - -c
+        - "pip install --quiet --no-cache-dir -r requirements.txt && exec python -m services.gateway.main"
+
+    - name: orchestrator
+      image: docker.io/library/python:3.12-slim
+      ports:
+        - containerPort: 8081
+          hostPort: 8081
+      env:
+        - {name: BUS, value: "redis"}
+        - {name: REDIS_URL, value: "redis://127.0.0.1:6379/0"}
+        - {name: PORT, value: "8081"}
+        - {name: PYTHONPATH, value: "/app"}
+        - {name: PYTHONUNBUFFERED, value: "1"}
+      volumeMounts:
+        - {name: repo, mountPath: /app, readOnly: true}
+      workingDir: /app
+      command:
+        - sh
+        - -c
+        - "pip install --quiet --no-cache-dir -r requirements.txt && exec python -m services.orchestrator.main"
+
+    - name: sqlite-service
+      image: docker.io/library/python:3.12-slim
+      ports:
+        - containerPort: 8082
+          hostPort: 8082
+      env:
+        - {name: BUS, value: "redis"}
+        - {name: REDIS_URL, value: "redis://127.0.0.1:6379/0"}
+        - {name: PORT, value: "8082"}
+        - {name: PYTHONPATH, value: "/app"}
+        - {name: PYTHONUNBUFFERED, value: "1"}
+      volumeMounts:
+        - {name: repo, mountPath: /app, readOnly: true}
+      workingDir: /app
+      command:
+        - sh
+        - -c
+        - "pip install --quiet --no-cache-dir -r requirements.txt && exec python -m services.sqlite_service.main"
+
+    - name: vector-service
+      image: docker.io/library/python:3.12-slim
+      ports:
+        - containerPort: 8083
+          hostPort: 8083
+      env:
+        - {name: BUS, value: "redis"}
+        - {name: REDIS_URL, value: "redis://127.0.0.1:6379/0"}
+        - {name: PORT, value: "8083"}
+        - {name: PYTHONPATH, value: "/app"}
+        - {name: PYTHONUNBUFFERED, value: "1"}
+      volumeMounts:
+        - {name: repo, mountPath: /app, readOnly: true}
+      workingDir: /app
+      command:
+        - sh
+        - -c
+        - "pip install --quiet --no-cache-dir -r requirements.txt && exec python -m services.vector_service.main"
+
+    - name: graph-service
+      image: docker.io/library/python:3.12-slim
+      ports:
+        - containerPort: 8084
+          hostPort: 8084
+      env:
+        - {name: BUS, value: "redis"}
+        - {name: REDIS_URL, value: "redis://127.0.0.1:6379/0"}
+        - {name: PORT, value: "8084"}
+        - {name: PYTHONPATH, value: "/app"}
+        - {name: PYTHONUNBUFFERED, value: "1"}
+      volumeMounts:
+        - {name: repo, mountPath: /app, readOnly: true}
+      workingDir: /app
+      command:
+        - sh
+        - -c
+        - "pip install --quiet --no-cache-dir -r requirements.txt && exec python -m services.graph_service.main"
+
+    - name: llm-service
+      image: docker.io/library/python:3.12-slim
+      ports:
+        - containerPort: 8085
+          hostPort: 8085
+      env:
+        - {name: BUS, value: "redis"}
+        - {name: REDIS_URL, value: "redis://127.0.0.1:6379/0"}
+        - {name: PORT, value: "8085"}
+        - {name: PYTHONPATH, value: "/app"}
+        - {name: PYTHONUNBUFFERED, value: "1"}
+      volumeMounts:
+        - {name: repo, mountPath: /app, readOnly: true}
+      workingDir: /app
+      command:
+        - sh
+        - -c
+        - "pip install --quiet --no-cache-dir -r requirements.txt && exec python -m services.llm_service.main"
+
+    - name: answer-service
+      image: docker.io/library/python:3.12-slim
+      ports:
+        - containerPort: 8086
+          hostPort: 8086
+      env:
+        - {name: BUS, value: "redis"}
+        - {name: REDIS_URL, value: "redis://127.0.0.1:6379/0"}
+        - {name: PORT, value: "8086"}
+        - {name: PYTHONPATH, value: "/app"}
+        - {name: PYTHONUNBUFFERED, value: "1"}
+      volumeMounts:
+        - {name: repo, mountPath: /app, readOnly: true}
+      workingDir: /app
+      command:
+        - sh
+        - -c
+        - "pip install --quiet --no-cache-dir -r requirements.txt && exec python -m services.answer_service.main"
+
+    - name: event-log
+      image: docker.io/library/python:3.12-slim
+      ports:
+        - containerPort: 8087
+          hostPort: 8087
+      env:
+        - {name: BUS, value: "redis"}
+        - {name: REDIS_URL, value: "redis://127.0.0.1:6379/0"}
+        - {name: PORT, value: "8087"}
+        - {name: PYTHONPATH, value: "/app"}
+        - {name: PYTHONUNBUFFERED, value: "1"}
+      volumeMounts:
+        - {name: repo, mountPath: /app, readOnly: true}
+      workingDir: /app
+      command:
+        - sh
+        - -c
+        - "pip install --quiet --no-cache-dir -r requirements.txt && exec python -m services.event_log.main"
+
+    - name: control-plane
+      image: docker.io/library/python:3.12-slim
+      ports:
+        - containerPort: 8090
+          hostPort: 8090
+      env:
+        - {name: BUS, value: "redis"}
+        - {name: REDIS_URL, value: "redis://127.0.0.1:6379/0"}
+        - {name: PORT, value: "8090"}
+        - {name: PYTHONPATH, value: "/app"}
+        - {name: PYTHONUNBUFFERED, value: "1"}
+      volumeMounts:
+        - {name: repo, mountPath: /app, readOnly: true}
+      workingDir: /app
+      command:
+        - sh
+        - -c
+        - "pip install --quiet --no-cache-dir -r requirements.txt && exec python -m services.control_plane.main"
+  volumes:
+    - name: repo
+      hostPath:
+        path: ..
+        type: Directory

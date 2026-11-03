@@ -1,0 +1,300 @@
+# Curated guidance corpus: reporting guidelines, governance frameworks and the
+# highly-cited evaluation papers that set the field's norms.
+#
+# Sourced from the user's own curated notes (tier list from memory, not a live
+# citation ranking). Every entry carries the aliases that should trigger it, so the
+# matcher stays deterministic. `url` points at the organisation's stable page; add
+# `pmid`/`doi` only when you have verified them — an unverified identifier is worse
+# than none, because the UI turns it into a clickable PubMed/DOI link.
+#
+# kind: reporting | governance | documentation | evaluation
+sources:
+  - id: tripod-ai
+    kind: reporting
+    name: "TRIPOD+AI"
+    keys: [tripod, tripod+ai, prediction model reporting, prediction model, prognostic model, risk model]
+    use_for: "Reporting of prediction-model development and validation"
+    title: "TRIPOD+AI statement: updated guidance for reporting clinical prediction models that use regression or machine learning methods"
+    authors: "Collins GS, et al."
+    venue: "BMJ 385:e078378"
+    year: 2024
+    url: "https://www.equator-network.org/reporting-guidelines/tripod-statement/"
+    pmid: "38626948"
+    summary: "Extends TRIPOD (2015) to machine learning. The default reporting standard reviewers ask for on any clinical prediction model."
+
+  - id: tripod-llm
+    kind: reporting
+    name: "TRIPOD-LLM"
+    keys: [tripod-llm, llm reporting, large language model reporting, llm study]
+    use_for: "Reporting of healthcare LLM studies"
+    title: "TRIPOD-LLM reporting guideline for studies using large language models"
+    authors: "Gallifant J, et al."
+    venue: "Nature Medicine"
+    year: 2025
+    url: "https://www.equator-network.org/"
+    summary: "The LLM-specific extension of TRIPOD: prompts, model versions, evaluation data and human oversight must be reported."
+
+  - id: probast-ai
+    kind: reporting
+    name: "PROBAST / PROBAST+AI"
+    keys: [probast, risk of bias, bias appraisal, risk-of-bias]
+    use_for: "Risk-of-bias appraisal of prediction models"
+    title: "PROBAST: a tool to assess the risk of bias and applicability of prediction model studies (with the 2025 AI update)"
+    authors: "Wolff RF, et al."
+    venue: "Annals of Internal Medicine (2019); AI update 2025"
+    year: 2019
+    url: "https://www.equator-network.org/"
+    summary: "Four-domain appraisal (participants, predictors, outcome, analysis). Use it to judge whether a model's reported performance is trustworthy."
+
+  - id: consort-spirit-ai
+    kind: reporting
+    name: "CONSORT-AI / SPIRIT-AI"
+    keys: [consort-ai, spirit-ai, rct reporting, trial protocol, randomised trial reporting]
+    use_for: "Reporting of randomised trials and protocols of AI interventions"
+    title: "CONSORT-AI and SPIRIT-AI extensions for reporting AI interventions in trials and protocols"
+    authors: "Liu X, Rivera SC, et al."
+    venue: "Nature Medicine / Lancet Digital Health / BMJ"
+    year: 2020
+    url: "https://www.equator-network.org/"
+    summary: "What a trial of an AI intervention must disclose beyond ordinary CONSORT: input handling, human-AI interaction, error analysis."
+
+  - id: decide-ai
+    kind: reporting
+    name: "DECIDE-AI"
+    keys: [decide-ai, early live evaluation, early clinical evaluation, live clinical evaluation]
+    use_for: "Early-stage live clinical evaluation of AI systems"
+    title: "DECIDE-AI: reporting guideline for the early-stage clinical evaluation of decision support systems driven by AI"
+    authors: "Vasey B, et al."
+    venue: "Nature Medicine / BMJ"
+    year: 2022
+    url: "https://www.equator-network.org/"
+    summary: "For small-scale live studies before a full trial: what to report about the human-AI loop and safety signals."
+
+  - id: stard-ai
+    kind: reporting
+    name: "STARD-AI"
+    keys: [stard-ai, diagnostic accuracy, accuracy study]
+    use_for: "Diagnostic accuracy studies of AI"
+    title: "STARD-AI: reporting guideline for diagnostic accuracy studies using artificial intelligence"
+    authors: "Sounderajah V, et al."
+    venue: "2025"
+    year: 2025
+    url: "https://www.equator-network.org/"
+    summary: "The AI extension of STARD for studies whose endpoint is diagnostic accuracy."
+
+  - id: claim
+    kind: reporting
+    name: "CLAIM"
+    keys: [claim checklist, imaging ai reporting, radiology ai reporting, medical imaging]
+    use_for: "Reporting of medical imaging AI studies"
+    title: "CLAIM: a checklist for artificial intelligence in medical imaging"
+    authors: "Mongan J, Moy L, Kahn CE"
+    venue: "Radiology: Artificial Intelligence"
+    year: 2020
+    url: "https://pubs.rsna.org/journal/ai"
+    summary: "Imaging-specific reporting checklist: data provenance, annotation, model selection, failure analysis."
+
+  - id: chart
+    kind: reporting
+    name: "CHART"
+    keys: [chart, chatbot reporting, health advice chatbot]
+    use_for: "Reporting studies of chatbots and LLM health advice"
+    title: "CHART: reporting guideline for chatbot and conversational AI health studies"
+    authors: "2025"
+    venue: "2025"
+    year: 2025
+    url: "https://www.equator-network.org/"
+    summary: "Covers prompt sets, model churn, safety escalation and human review for consumer-facing health chatbots."
+
+  - id: nist-ai-rmf
+    kind: governance
+    name: "NIST AI RMF 1.0 + Generative AI Profile"
+    keys: [nist, ai rmf, risk management framework, governance, generative ai profile, nist ai 600-1]
+    use_for: "Organisational AI risk management (US)"
+    title: "Artificial Intelligence Risk Management Framework (AI RMF 1.0) and Generative AI Profile (NIST AI 600-1)"
+    authors: "NIST"
+    venue: "nist.gov"
+    year: 2023
+    url: "https://www.nist.gov/itl/ai-risk-management-framework"
+    summary: "Not healthcare-specific, but the most cited US risk framework: govern, map, measure, manage — with a generative-AI profile."
+
+  - id: future-ai
+    kind: governance
+    name: "FUTURE-AI"
+    keys: [future-ai, trustworthy medical ai, fairness universality traceability]
+    use_for: "Trustworthy medical AI consensus principles"
+    title: "FUTURE-AI: international consensus guideline for trustworthy and deployable AI in healthcare"
+    authors: "2025"
+    venue: "BMJ"
+    year: 2025
+    url: "https://www.bmj.com/"
+    summary: "Six dimensions: fairness, universality, traceability, usability, robustness, explainability — each with concrete practice items."
+
+  - id: who-ethics
+    kind: governance
+    name: "WHO ethics and governance guidance"
+    keys: [who, ethics, governance of ai for health, large multimodal model]
+    use_for: "Ethics and governance of AI for health globally"
+    title: "Ethics and governance of artificial intelligence for health (including the LMM guidance)"
+    authors: "World Health Organization"
+    venue: "who.int"
+    year: 2021
+    url: "https://www.who.int/publications"
+    summary: "WHO guidance on ethics, accountability and LMM deployment in health systems; strong on equity and public-sector duties."
+
+  - id: fda-gmlp
+    kind: governance
+    name: "FDA GMLP, PCCP and SaMD framework"
+    keys: [fda, good machine learning practice, pccp, predetermined change control plan, samd, 510k, de novo]
+    use_for: "US regulatory pathway for AI/ML software as a medical device"
+    title: "Good Machine Learning Practice principles; Predetermined Change Control Plan guidance; Software as a Medical Device framework"
+    authors: "U.S. Food and Drug Administration"
+    venue: "fda.gov"
+    year: 2021
+    url: "https://www.fda.gov/medical-devices/software-medical-device-samd/artificial-intelligence-and-machine-learning-software-medical-device"
+    summary: "Intended use drives device classification; PCCP is how a model is allowed to change after clearance."
+
+  - id: chai-standards
+    kind: governance
+    name: "CHAI Assurance Standards and model cards"
+    keys: [chai, coalition for health ai, assurance standards, joint commission]
+    use_for: "Assurance and documentation of healthcare AI"
+    title: "CHAI Assurance Standards and model cards"
+    authors: "Coalition for Health AI"
+    venue: "chai.org"
+    year: 2025
+    url: "https://chai.org/"
+    summary: "Operational assurance standards for healthcare AI, plus a model-card template; the Joint Commission partnered with CHAI on guidance in 2025."
+
+  - id: eu-ai-act
+    kind: governance
+    name: "EU AI Act and ISO/IEC 42001"
+    keys: [eu ai act, ai act, mdr, ce mark, high-risk ai, iso 42001, iso/iec 42001]
+    use_for: "EU regulatory and management-system obligations"
+    title: "Regulation (EU) 2024/1689 (Artificial Intelligence Act); ISO/IEC 42001 AI management systems"
+    authors: "European Union; ISO/IEC"
+    venue: "EUR-Lex; iso.org"
+    year: 2024
+    url: "https://eur-lex.europa.eu/eli/reg/2024/1689/oj"
+    summary: "High-risk obligations (risk management, data governance, human oversight, post-market monitoring) sit on top of MDR for medical devices; ISO/IEC 42001 covers the management system."
+
+  - id: model-cards
+    kind: documentation
+    name: "Model Cards"
+    keys: [model card, model cards, mitchell, document a model, model documentation, document the model]
+    use_for: "Documenting intended use, subgroup metrics and limitations"
+    title: "Model Cards for Model Reporting"
+    authors: "Mitchell M, et al."
+    venue: "ACM FAT*"
+    year: 2019
+    url: "https://arxiv.org/abs/1810.03993"
+    summary: "The original model-card template: intended use, factors, subgroup metrics, ethical considerations."
+
+  - id: datasheets
+    kind: documentation
+    name: "Datasheets for Datasets"
+    keys: [datasheet, datasheets for datasets, documentation of data, dataset documentation]
+    use_for: "Documenting dataset provenance and collection"
+    title: "Datasheets for Datasets"
+    authors: "Gebru T, et al."
+    venue: "Communications of the ACM"
+    year: 2021
+    url: "https://arxiv.org/abs/1803.09010"
+    summary: "Documents motivation, composition, collection, preprocessing and appropriate uses of a dataset."
+
+  - id: model-facts
+    kind: documentation
+    name: "Model Facts labels"
+    keys: [model facts, model facts label, sendak, clinician facing label, model label]
+    use_for: "One-page deployment label for clinical AI"
+    title: "Presenting machine learning model information to clinical end users with model facts labels"
+    authors: "Sendak MP, et al."
+    venue: "npj Digital Medicine"
+    year: 2020
+    url: "https://www.nature.com/npjdigitalmed/"
+    summary: "A short, clinician-facing label: what the model does, when it fails, and what to do when it is wrong."
+
+  - id: mi-claim
+    kind: documentation
+    name: "MI-CLAIM / MINIMAR"
+    keys: [mi-claim, minimar, minimum information, minimum reporting]
+    use_for: "Minimum-information checklists for clinical AI studies"
+    title: "MI-CLAIM and MINIMAR minimum-information checklists"
+    authors: "Norgeot B, et al.; Hernandez-Boussard T, et al."
+    venue: "Nature Medicine; JAMIA"
+    year: 2020
+    url: "https://www.equator-network.org/"
+    summary: "Minimum sets of items a clinical AI study must disclose to be interpretable and reproducible."
+
+  - id: med-palm
+    kind: evaluation
+    name: "Med-PaLM / MultiMedQA"
+    keys: [med-palm, medpalm, multimedaqa, human rating, clinician rating, singhal]
+    use_for: "Human-rated clinical LLM evaluation"
+    title: "Large language models encode clinical knowledge"
+    authors: "Singhal K, et al."
+    venue: "Nature 620:172-180"
+    year: 2023
+    url: "https://pubmed.ncbi.nlm.nih.gov/37438534/"
+    pmid: "37438534"
+    summary: "Introduced multi-axis human evaluation of clinical LLM answers (factuality, completeness, harm, bias)."
+
+  - id: healthbench
+    kind: evaluation
+    name: "HealthBench"
+    keys: [healthbench, rubric-based evaluation, physician-written, rubric]
+    use_for: "Rubric-based LLM health evaluation"
+    title: "HealthBench: Evaluating Large Language Models Towards Improved Human Health"
+    authors: "Arora RK, et al. (OpenAI)"
+    venue: "arXiv"
+    year: 2025
+    url: "https://arxiv.org/abs/2505.08775"
+    summary: "Physician-written conversations scored against explicit rubrics — the current standard shape for LLM health evals."
+
+  - id: medhelm
+    kind: evaluation
+    name: "MedHELM"
+    keys: [medhelm, helm, holistic benchmark, stanford benchmark]
+    use_for: "Holistic LLM benchmarking in health"
+    title: "MedHELM: a holistic framework for evaluating large language models in healthcare"
+    authors: "Stanford (Bedoya A, et al.)"
+    venue: "2025"
+    year: 2025
+    url: "https://crfm.stanford.edu/helm/"
+    summary: "Builds on HELM to benchmark clinical LLMs across tasks, with clinician-informed scenarios."
+
+  - id: liu-2019
+    kind: evaluation
+    name: "Liu et al. deep learning vs clinicians"
+    keys: [deep learning versus clinicians, clinician comparison, human benchmark]
+    use_for: "Benchmarking AI against clinician readers"
+    title: "A comparison of deep learning performance against health-care professionals in detecting diseases from medical imaging"
+    authors: "Liu X, et al."
+    venue: "Lancet Digital Health"
+    year: 2019
+    url: "https://www.thelancet.com/journals/landig/home"
+    summary: "Systematic review showing most comparisons against clinicians were retrospective and poorly reported."
+
+  - id: nagendran-2020
+    kind: evaluation
+    name: "Nagendran et al."
+    keys: [nagendran, poor reporting, biased studies, ai studies quality]
+    use_for: "Evidence on the quality of AI studies"
+    title: "Artificial intelligence versus clinicians: systematic review of design, reporting standards, and claims of deep learning studies"
+    authors: "Nagendran M, et al."
+    venue: "BMJ"
+    year: 2020
+    url: "https://www.bmj.com/"
+    summary: "Deep-learning studies rarely had prospective design or external validation, yet claims outran the evidence."
+
+  - id: wiens-2019
+    kind: evaluation
+    name: "Wiens et al. 'Do no harm'"
+    keys: [wiens, do no harm, responsible machine learning, deployment roadmap]
+    use_for: "Responsible-ML roadmap for deployment"
+    title: "Do no harm: a roadmap for responsible machine learning for health care"
+    authors: "Wiens J, et al."
+    venue: "Nature Medicine"
+    year: 2019
+    url: "https://www.nature.com/nm/"
+    summary: "A lifecycle roadmap: problem selection, data, model, deployment and monitoring, with failure modes at each stage."

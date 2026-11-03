@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EvalBot — architecture (detail)</title>
+<meta name="description" content="EvalBot architecture — Every service, port and event, one correlation id per turn.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230f766e'/%3E%3Cpath d='M16 7v18M7 16h18' stroke='white' stroke-width='3.5' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg:#f6f4ef; --surface:#fff; --surface-2:#efece5; --ink:#1d2523; --ink-2:#55605c;
+    --ink-3:#8a938f; --line:#e0dcd2; --accent:#0f766e;
+    --shadow:0 1px 2px rgba(29,37,35,.06), 0 10px 30px rgba(29,37,35,.07);
+    --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --serif:"Newsreader",Georgia,"Times New Roman",serif;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.6 var(--sans); -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1720px; margin:0 auto; padding:32px 28px 56px; }
+  header.top { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .mark { width:42px; height:42px; border-radius:12px; background:var(--accent); display:grid; place-items:center; box-shadow:var(--shadow); }
+  .word { font-family:var(--serif); font-size:30px; font-weight:500; letter-spacing:-.01em; }
+  .sub { color:var(--ink-2); font-size:13.5px; margin:2px 0 0; }
+  .chips { margin-left:auto; display:flex; gap:8px; flex-wrap:wrap; }
+  .chip { border:1px solid var(--line); background:var(--surface); border-radius:999px; padding:4px 12px;
+           font-size:12.5px; color:var(--ink-2); white-space:nowrap; }
+  .chip b { color:var(--accent); font-weight:600; }
+  .board { margin:26px 0 0; background:var(--surface); border:1px solid var(--line); border-radius:18px;
+            box-shadow:var(--shadow); padding:10px; overflow:auto; }
+  .board svg { display:block; width:100%; height:auto; border-radius:12px; min-width:900px; }
+  .board .only-dark { display:none; }
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px; margin-top:22px; }
+  .card { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:16px 18px; box-shadow:var(--shadow); }
+  .card h3 { margin:0 0 6px; font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-3); font-weight:600; }
+  .card p { margin:0; font-size:13.5px; color:var(--ink-2); }
+  .card code, footer code { font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:12px;
+                background:var(--surface-2); border-radius:5px; padding:1px 5px; color:var(--ink); }
+  footer.foot { margin-top:26px; display:flex; gap:16px; flex-wrap:wrap; align-items:baseline;
+                 border-top:1px solid var(--line); padding-top:14px; font-size:12.5px; color:var(--ink-3); }
+  footer.foot b, footer a { color:var(--ink-2); font-weight:600; }
+  a { color:var(--accent); }
+  @media (prefers-color-scheme:dark) {
+    :root { --bg:#121816; --surface:#1a2220; --surface-2:#222c29; --ink:#e8ece9; --ink-2:#a3aeaa;
+             --ink-3:#6f7a76; --line:#2b3633; --accent:#34b3a4;
+             --shadow:0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.25); }
+    .board .only-light { display:none; }
+    .board .only-dark { display:block; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <span class="mark" aria-hidden="true">
+      <svg viewBox="0 0 64 64" width="42" height="42"><rect width="64" height="64" rx="18" fill="#0f766e"/>
+        <path d="M13.3 32H50.7M32 13.3v37.4" stroke="#fff" stroke-width="7" stroke-linecap="round"/></svg>
+    </span>
+    <div>
+      <div class="word">EvalBot</div>
+      <p class="sub">Event-driven microservice architecture</p>
+    </div>
+    <div class="chips"><span class="chip"><b>CMU · NIST AIMSEC / MARS</b></span><span class="chip">9 services + ingest</span><span class="chip">bus: Redis Streams | MemoryBus</span><span class="chip">MONOLITH=1</span></div>
+  </header>
+
+  <figure class="board" role="img" aria-label="EvalBot architecture diagram">
+<div class="only-light"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1680 1520" role="img" aria-label="EvalBot architecture: event-driven healthcare-AI evaluation assistant">
+  <title>EvalBot — event-driven microservice architecture</title>
+  <desc>Browser client over SSE to a FastAPI gateway, an at-least-once event bus, an intent-routing orchestrator fanning out to SQLite, Qdrant and graph retrieval legs, then a streaming LLM service and a citation-guarding answer service, with an append-only event log, a hot-swap model registry, and an offline corpus build.</desc>
+
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#faf8f3"/>
+      <stop offset="1" stop-color="#f4f1ea"/>
+    </linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#e6e1d6" stroke-width="1"/>
+    </pattern>
+    <marker id="ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#3c4644"/>
+    </marker>
+    <marker id="ah-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#0f766e"/>
+    </marker>
+    <marker id="ah-olive" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#556335"/>
+    </marker>
+    <marker id="ah-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#9a5b00"/>
+    </marker>
+    <marker id="ah-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6f6f66"/>
+    </marker>
+  </defs>
+
+  <!-- ═══ background ═══ -->
+  <g>
+    <rect x="0" y="0" width="1680" height="1520" fill="url(#paper)"/>
+    <rect x="0" y="0" width="1680" height="1520" fill="url(#grid)" opacity="0.75"/>
+  </g>
+
+  <!-- ═══ header (brand lockup) ═══ -->
+  <g font-family="Inter, 'DejaVu Sans', sans-serif">
+    <rect x="44" y="26" width="1456" height="72" fill="none" data-bounds="1"/>
+    <rect x="44" y="30" width="46" height="46" rx="13" fill="#0f766e"/>
+    <path d="M 53.6 53 H 80.4 M 67 39.6 V 66.4" stroke="#ffffff" stroke-width="5" stroke-linecap="round" fill="none"/>
+    <text x="104" y="58" font-family="C059, Newsreader, 'Bitstream Charter', Georgia, serif" font-size="30" font-weight="500" letter-spacing="-0.6" fill="#1d2523">EvalBot</text>
+    <text x="105" y="84" font-size="11" fill="#55605c">Healthcare-AI evaluation assistant · grounded in a 15,954-paper scoping corpus</text>
+    <g>
+      <rect x="1074" y="36" width="117" height="22" rx="11" fill="#ffffff" stroke="#e0dcd2" data-bounds="1"/>
+      <text x="1132" y="51" font-size="9.4" font-weight="600" text-anchor="middle" fill="#0f766e">CMU · NIST AIMSEC</text>
+      <rect x="1202" y="36" width="68" height="22" rx="11" fill="#ffffff" stroke="#e0dcd2" data-bounds="1"/>
+      <text x="1236" y="51" font-size="9.4" font-weight="600" text-anchor="middle" fill="#55605c">events v1</text>
+      <rect x="1281" y="36" width="121" height="22" rx="11" fill="#ffffff" stroke="#e0dcd2" data-bounds="1"/>
+      <text x="1341" y="51" font-size="9.4" font-weight="600" text-anchor="middle" fill="#55605c">BUS=redis | memory</text>
+      <rect x="1413" y="36" width="87" height="22" rx="11" fill="#ffffff" stroke="#e0dcd2" data-bounds="1"/>
+      <text x="1456" y="51" font-size="9.4" font-weight="600" text-anchor="middle" fill="#55605c">MONOLITH=1</text>
+    </g>
+    <line x1="44" y1="104" x2="1500" y2="104" stroke="#ddd8cc" stroke-width="1"/>
+  </g>
+  <g font-family="Inter, 'DejaVu Sans', sans-serif" font-size="9.5" font-weight="600" letter-spacing="1.5" fill="#8a938f">
+    <rect x="44" y="136" width="1456" height="126" rx="14" fill="#ffffff" fill-opacity="0.55" stroke="#e0dcd2" data-bounds="1"/>
+    <text x="60" y="158" data-bounds="1">CLIENT · DEPENDENCY-FREE · NO BUILD STEP</text>
+
+    <rect x="44" y="306" width="1456" height="134" rx="14" fill="#ffffff" fill-opacity="0.55" stroke="#e0dcd2" data-bounds="1"/>
+    <text x="60" y="328" data-bounds="1">EDGE · TRANSPORT</text>
+
+    <rect x="44" y="484" width="1456" height="150" rx="14" fill="#ffffff" fill-opacity="0.55" stroke="#e0dcd2" data-bounds="1"/>
+    <text x="60" y="506" data-bounds="1">BUS · AT-LEAST-ONCE · IDEMPOTENT ON event_id</text>
+
+    <rect x="44" y="678" width="1456" height="170" rx="14" fill="#ffffff" fill-opacity="0.55" stroke="#e0dcd2" data-bounds="1"/>
+    <text x="60" y="700" data-bounds="1">ORCHESTRATION · ROUTING, FUSION, GRACEFUL DEGRADATION</text>
+
+    <rect x="44" y="892" width="1456" height="318" rx="14" fill="#ffffff" fill-opacity="0.55" stroke="#e0dcd2" data-bounds="1"/>
+    <text x="60" y="914" data-bounds="1">RETRIEVAL → GENERATION → ANSWER · ONE CORRELATION ID PER TURN</text>
+
+    <rect x="44" y="1254" width="1456" height="126" rx="14" fill="#ffffff" fill-opacity="0.55" stroke="#e0dcd2" data-bounds="1"/>
+    <text x="60" y="1276" data-bounds="1">OFFLINE · CORPUS BUILD, BATCH AND RESUMABLE</text>
+  </g>
+
+  <!-- ═══ arrows (behind the cards) ═══ -->
+  <g fill="none" stroke-linecap="round">
+    <line x1="1300" y1="248" x2="1300" y2="334" stroke="#3c4644" stroke-width="1.7" marker-end="url(#ah-ink)"/>
+    <line x1="1130" y1="428" x2="1130" y2="510" stroke="#3c4644" stroke-width="1.7" marker-end="url(#ah-ink)"/>
+    <line x1="380" y1="428" x2="380" y2="510" stroke="#9a5b00" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#ah-amber)"/>
+    <line x1="700" y1="614" x2="700" y2="698" stroke="#3c4644" stroke-width="1.7" marker-end="url(#ah-ink)"/>
+    <line x1="412" y1="826" x2="412" y2="918" stroke="#3c4644" stroke-width="1.7" marker-end="url(#ah-ink)"/>
+    <line x1="700" y1="920" x2="700" y2="832" stroke="#556335" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#ah-olive)"/>
+    <line x1="990" y1="826" x2="990" y2="946" stroke="#3c4644" stroke-width="1.7" marker-end="url(#ah-ink)"/>
+    <line x1="990" y1="1044" x2="990" y2="1068" stroke="#3c4644" stroke-width="1.7" marker-end="url(#ah-ink)"/>
+    <line x1="1180" y1="998" x2="1198" y2="998" stroke="#6f6f66" stroke-width="1.4" marker-end="url(#ah-grey)"/>
+    <line x1="600" y1="1250" x2="600" y2="1206" stroke="#6f6f66" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#ah-grey)"/>
+    <path d="M 1480 1123 H 1520 V 352 H 1490" stroke="#0f766e" stroke-width="1.8" stroke-dasharray="9 5" marker-end="url(#ah-teal)"/>
+    <line x1="1150" y1="565" x2="1168" y2="565" stroke="#4b5563" stroke-width="1.4" marker-end="url(#ah-ink)"/>
+  </g>
+
+  <!-- ═══ client ═══ -->
+  <g font-family="Inter, 'DejaVu Sans', sans-serif">
+    <rect x="64" y="172" width="1152" height="76" rx="10" fill="#f0f7f5" stroke="#0f766e" stroke-opacity="0.5" stroke-width="1.4" data-bounds="1"/>
+    <circle cx="80" cy="192" r="3.2" fill="#0f766e"/>
+    <text x="90" y="196" font-size="12.5" font-weight="600" fill="#1d2523">EvalBot web client</text>
+    <text x="1200" y="196" font-family="'DejaVu Sans Mono', monospace" font-size="8.4" text-anchor="end" fill="#8a938f">index.html · app.js · api.js · styles.css</text>
+    <text x="80" y="214" font-size="8.7" fill="#55605c">chat thread · markdown renderer · [n] markers → Sources panel (arXiv / PubMed / DOI) · checklist · export · About (MARS) · localStorage history</text>
+    <text x="80" y="230" font-size="8.7" fill="#55605c">sendStream() consumes SSE meta → delta* → done on /api/chat/stream · sendMessage() JSON fallback · demo mode when API_URL is unset</text>
+
+    <rect x="1240" y="172" width="240" height="76" rx="10" fill="#ffffff" stroke="#0f766e" stroke-opacity="0.35" stroke-width="1.4" data-bounds="1"/>
+    <text x="1256" y="196" font-size="12.5" font-weight="600" fill="#1d2523">Static UI</text>
+    <text x="1256" y="214" font-size="8.7" fill="#55605c">python3 -m http.server 8000</text>
+    <text x="1256" y="230" font-size="8.7" fill="#55605c">or served by the gateway at :8080</text>
+  </g>
+
+  <!-- ═══ edge ═══ -->
+  <g font-family="Inter, 'DejaVu Sans', sans-serif">
+    <rect x="64" y="340" width="946" height="88" rx="10" fill="#edf6f4" stroke="#0b5f59" stroke-opacity="0.5" stroke-width="1.4" data-bounds="1"/>
+    <circle cx="80" cy="360" r="3.2" fill="#0b5f59"/>
+    <text x="90" y="364" font-size="12.5" font-weight="600" fill="#1d2523">control-plane</text>
+    <text x="186" y="364" font-family="'DejaVu Sans Mono', monospace" font-size="9.6" font-weight="600" fill="#0b5f59">:8090</text>
+    <text x="994" y="364" font-size="7.8" font-weight="600" letter-spacing="0.9" text-anchor="end" fill="#0b5f59">HOT-SWAP REGISTRY</text>
+    <text x="80" y="382" font-size="8.7" fill="#55605c">models.yaml → models.db registry · profiles chat / judge / embed, re-read on every call</text>
+    <text x="80" y="398" font-size="8.7" fill="#55605c">POST /api/admin/profiles/{name} → verify the slug against the provider /models → publish model.changed</text>
+    <text x="80" y="414" font-size="8.7" fill="#55605c">verification fails ⇒ previous profile kept · X-Model-Profile A/B · GET /api/admin/models · /api/admin/health</text>
+
+    <rect x="1100" y="340" width="380" height="88" rx="10" fill="#edf6f4" stroke="#0b5f59" stroke-opacity="0.6" stroke-width="1.4" data-bounds="1"/>
+    <circle cx="1116" cy="360" r="3.2" fill="#0b5f59"/>
+    <text x="1126" y="364" font-size="12.5" font-weight="600" fill="#1d2523">gateway</text>
+    <text x="1190" y="364" font-family="'DejaVu Sans Mono', monospace" font-size="9.6" font-weight="600" fill="#0b5f59">:8080</text>
+    <text x="1464" y="364" font-size="7.8" font-weight="600" letter-spacing="0.9" text-anchor="end" fill="#0b5f59">FASTAPI · SSE</text>
+    <text x="1116" y="382" font-size="8.7" fill="#55605c">POST /api/chat · /api/chat/stream</text>
+    <text x="1116" y="398" font-size="8.7" fill="#55605c">CORS · validation · deadline</text>
+    <text x="1116" y="414" font-size="8.7" fill="#55605c">+ correlation_id · keepalive</text>
+  </g>
+
+  <!-- ═══ bus ═══ -->
+  <g font-family="Inter, 'DejaVu Sans', sans-serif">
+    <rect x="64" y="516" width="1086" height="98" rx="10" fill="#fdf6ec" stroke="#9a5b00" stroke-opacity="0.5" stroke-width="1.4" data-bounds="1"/>
+    <text x="80" y="540" font-size="12.5" font-weight="600" fill="#1d2523">Redis Streams</text>
+    <text x="190" y="540" font-size="12.5" fill="#9a5b00">⟷</text>
+    <text x="216" y="540" font-size="12.5" font-weight="600" fill="#1d2523">MemoryBus</text>
+    <text x="310" y="540" font-family="'DejaVu Sans Mono', monospace" font-size="8.4" fill="#8a938f">core/bus.py — one Protocol, two transports</text>
+    <text x="1134" y="540" font-size="7.8" font-weight="600" letter-spacing="0.9" text-anchor="end" fill="#9a5b00">NO SERVICE IMPORTS A TRANSPORT</text>
+    <text x="80" y="560" font-size="8.7" fill="#55605c">Redis Streams: consumer groups · XACK · pending reclaim · replay by id (podman :6379)   ·   MONOLITH=1 and tests: the in-memory bus, same ack and fan-out semantics</text>
+    <text x="80" y="576" font-size="8.7" fill="#55605c">Envelope Event{event_id, type, v:1, ts, correlation_id, causation_id, producer, deadline, payload} · dedupe on event_id: core/dedupe.py (Memory / Sqlite per service)</text>
+    <text x="80" y="596" font-family="'DejaVu Sans Mono', monospace" font-size="8.2" fill="#7a4a12">chat.requested → retrieval.requested → (sqlite|vector|graph|stats).result → retrieval.completed → generation.requested → llm.token* → llm.completed → answer.completed → *.failed</text>
+
+    <rect x="1174" y="516" width="306" height="98" rx="10" fill="#f4f5f6" stroke="#4b5563" stroke-opacity="0.5" stroke-width="1.4" data-bounds="1"/>
+    <circle cx="1190" cy="540" r="3.2" fill="#4b5563"/>
+    <text x="1200" y="544" font-size="12.5" font-weight="600" fill="#1d2523">event-log</text>
+    <text x="1262" y="544" font-family="'DejaVu Sans Mono', monospace" font-size="9.6" font-weight="600" fill="#4b5563">:8087</text>
+    <text x="1464" y="544" font-size="7.8" font-weight="600" letter-spacing="0.9" text-anchor="end" fill="#4b5563">AUDIT</text>
+    <text x="1190" y="562" font-size="8.7" fill="#55605c">events.db — every event, append-only</text>
+    <text x="1190" y="578" font-size="8.7" fill="#55605c">/api/events · /{correlation_id}/timeline</text>
+    <text x="1190" y="594" font-size="8.7" fill="#55605c">replays a turn deterministically</text>
+  </g>
+
+  <!-- ═══ orchestration ═══ -->
+  <g font-family="Inter, 'DejaVu Sans', sans-serif">
+    <rect x="64" y="704" width="1416" height="122" rx="10" fill="#eff5f9" stroke="#2f5d7c" stroke-opacity="0.5" stroke-width="1.4" data-bounds="1"/>
+    <circle cx="80" cy="728" r="3.2" fill="#2f5d7c"/>
+    <text x="90" y="732" font-size="12.5" font-weight="600" fill="#1d2523">orchestrator</text>
+    <text x="200" y="732" font-family="'DejaVu Sans Mono', monospace" font-size="9.6" font-weight="600" fill="#2f5d7c">:8081</text>
+    <text x="1464" y="732" font-size="7.8" font-weight="600" letter-spacing="0.9" text-anchor="end" fill="#2f5d7c">RULE ROUTER · RRF k=60 · TOP-8</text>
+
+    <g font-size="8.2" font-weight="600">
+      <rect x="80" y="742" width="72" height="21" rx="10.5" fill="#ffffff" stroke="#2f5d7c" stroke-opacity="0.45"/>
+      <text x="116" y="756" text-anchor="middle" fill="#2f5d7c">AGGREGATE</text>
+      <rect x="160" y="742" width="64" height="21" rx="10.5" fill="#ffffff" stroke="#2f5d7c" stroke-opacity="0.45"/>
+      <text x="192" y="756" text-anchor="middle" fill="#2f5d7c">FACETED</text>
+      <rect x="232" y="742" width="70" height="21" rx="10.5" fill="#ffffff" stroke="#2f5d7c" stroke-opacity="0.45"/>
+      <text x="267" y="756" text-anchor="middle" fill="#2f5d7c">SEMANTIC</text>
+      <rect x="310" y="742" width="70" height="21" rx="10.5" fill="#ffffff" stroke="#2f5d7c" stroke-opacity="0.45"/>
+      <text x="345" y="756" text-anchor="middle" fill="#2f5d7c">MULTIHOP</text>
+      <rect x="388" y="742" width="88" height="21" rx="10.5" fill="#2f5d7c" stroke="#2f5d7c"/>
+      <text x="432" y="756" text-anchor="middle" fill="#ffffff">HYBRID (DEF)</text>
+      <rect x="484" y="742" width="70" height="21" rx="10.5" fill="#ffffff" stroke="#2f5d7c" stroke-opacity="0.45"/>
+      <text x="519" y="756" text-anchor="middle" fill="#2f5d7c">GUIDANCE</text>
+    </g>
+
+    <text x="80" y="782" font-size="8.7" fill="#55605c">AGGREGATE → SQLite alone · FACETED → SQL filters + FTS5 · SEMANTIC → Qdrant · MULTIHOP → Cypher template · HYBRID → BM25 + dense + 1-hop graph → RRF k=60, dedupe by pmid → top-8</text>
+    <text x="80" y="798" font-size="8.7" fill="#55605c">evidence assembly + a CORPUS STATS block the model must quote verbatim · guidance/sources.yaml answered by deterministic keyword/IDF, cited as type:web, never counted</text>
+    <text x="80" y="814" font-size="8.7" fill="#55605c">turn grace-out on missing legs · meta{route, evidence_count, sources[], degraded[]} published before the first token · one correlation_id per turn</text>
+  </g>
+
+  <!-- ═══ retrieval legs ═══ -->
+  <g font-family="Inter, 'DejaVu Sans', sans-serif">
+    <rect x="56" y="924" width="712" height="276" rx="12" fill="#f5f8ef" stroke="#556335" stroke-opacity="0.55" stroke-width="1.3" stroke-dasharray="7 5" data-bounds="1"/>
+    <text x="72" y="944" font-size="8.2" font-weight="600" letter-spacing="1.1" fill="#556335">RETRIEVAL LEGS · ANY LEG DOWN ⇒ DEGRADED, THE ANSWER STILL RETURNS</text>
+
+    <rect x="72" y="952" width="680" height="72" rx="9" fill="#ffffff" stroke="#556335" stroke-opacity="0.45" stroke-width="1.3" data-bounds="1"/>
+    <circle cx="88" cy="972" r="3.2" fill="#556335"/>
+    <text x="98" y="976" font-size="12" font-weight="600" fill="#1d2523">sqlite-service</text>
+    <text x="196" y="976" font-family="'DejaVu Sans Mono', monospace" font-size="9.4" font-weight="600" fill="#556335">:8082</text>
+    <text x="736" y="976" font-size="7.8" font-weight="600" letter-spacing="0.9" text-anchor="end" fill="#556335">AUTHORITATIVE</text>
+    <text x="88" y="994" font-size="8.6" fill="#55605c">papers.db — the only reader/writer · FTS5 BM25 · filters: year, journal, design, external validation</text>
+    <text x="88" y="1010" font-size="8.6" fill="#55605c">aggregate intent is answered in SQL alone: the model never does the arithmetic</text>
+
+    <rect x="72" y="1032" width="680" height="72" rx="9" fill="#ffffff" stroke="#556335" stroke-opacity="0.45" stroke-width="1.3" data-bounds="1"/>
+    <circle cx="88" cy="1052" r="3.2" fill="#556335"/>
+    <text x="98" y="1056" font-size="12" font-weight="600" fill="#1d2523">vector-service</text>
+    <text x="204" y="1056" font-family="'DejaVu Sans Mono', monospace" font-size="9.4" font-weight="600" fill="#556335">:8083</text>
+    <text x="736" y="1056" font-size="7.8" font-weight="600" letter-spacing="0.9" text-anchor="end" fill="#556335">DENSE ANN</text>
+    <text x="88" y="1074" font-size="8.6" fill="#55605c">Qdrant · EMBED_PROVIDER=hash (dim 256, dependency-free) or local EmbeddingGemma 2 / bge (dim 768)</text>
+    <text x="88" y="1090" font-size="8.6" fill="#55605c">payload-filtered ANN · dimension mismatch or missing store ⇒ vector.degraded, lexical legs continue</text>
+
+    <rect x="72" y="1112" width="680" height="72" rx="9" fill="#ffffff" stroke="#556335" stroke-opacity="0.45" stroke-width="1.3" data-bounds="1"/>
+    <circle cx="88" cy="1132" r="3.2" fill="#556335"/>
+    <text x="98" y="1136" font-size="12" font-weight="600" fill="#1d2523">graph-service</text>
+    <text x="198" y="1136" font-family="'DejaVu Sans Mono', monospace" font-size="9.4" font-weight="600" fill="#556335">:8084</text>
+    <text x="736" y="1136" font-size="7.8" font-weight="600" letter-spacing="0.9" text-anchor="end" fill="#556335">TEMPLATED</text>
+    <text x="88" y="1154" font-size="8.6" fill="#55605c">Neo4j + named Cypher templates — user text is only ever a parameter, never generated</text>
+    <text x="88" y="1170" font-size="8.6" fill="#55605c">no NEO4J_URI ⇒ LocalGraph over SQLite: co-authors, MeSH co-occurrence, journal rollup</text>
+  </g>
+
+  <!-- ═══ generation + answer ═══ -->
+  <g font-family="Inter, 'DejaVu Sans', sans-serif">
+    <rect x="800" y="952" width="380" height="92" rx="10" fill="#faf1f6" stroke="#7a3f5c" stroke-opacity="0.5" stroke-width="1.4" data-bounds="1"/>
+    <circle cx="816" cy="972" r="3.2" fill="#7a3f5c"/>
+    <text x="826" y="976" font-size="12" font-weight="600" fill="#1d2523">llm-service</text>
+    <text x="910" y="976" font-family="'DejaVu Sans Mono', monospace" font-size="9.4" font-weight="600" fill="#7a3f5c">:8085</text>
+    <text x="1164" y="976" font-size="7.8" font-weight="600" letter-spacing="0.9" text-anchor="end" fill="#7a3f5c">PROVIDERS</text>
+    <text x="816" y="994" font-size="8.6" fill="#55605c">openrouter · openai_compat · hf_local · mock</text>
+    <text x="816" y="1010" font-size="8.6" fill="#55605c">profiles chat / judge / embed · Gemma 4 26B-A4B</text>
+    <text x="816" y="1026" font-size="8.6" fill="#55605c">llm.token batched 24 chars / 40 ms · usage</text>
+
+    <rect x="1204" y="952" width="276" height="92" rx="10" fill="#f6f6f3" stroke="#6f6f66" stroke-opacity="0.6" stroke-width="1.3" stroke-dasharray="7 5" data-bounds="1"/>
+    <text x="1220" y="976" font-size="12" font-weight="600" fill="#1d2523">External</text>
+    <text x="1464" y="976" font-size="7.8" font-weight="600" letter-spacing="0.9" text-anchor="end" fill="#6f6f66">EGRESS</text>
+    <text x="1220" y="994" font-size="8.6" fill="#55605c">OpenRouter — Gemma 4 26B-A4B</text>
+    <text x="1220" y="1010" font-size="8.6" fill="#55605c">or local vLLM / Ollama :8001</text>
+    <text x="1220" y="1026" font-size="8.6" fill="#55605c">slug verified vs /models at start</text>
+
+    <rect x="800" y="1074" width="680" height="98" rx="10" fill="#faf1f6" stroke="#7a3f5c" stroke-opacity="0.6" stroke-width="1.4" data-bounds="1"/>
+    <circle cx="816" cy="1094" r="3.2" fill="#7a3f5c"/>
+    <text x="826" y="1098" font-size="12" font-weight="600" fill="#1d2523">answer-service</text>
+    <text x="930" y="1098" font-family="'DejaVu Sans Mono', monospace" font-size="9.4" font-weight="600" fill="#7a3f5c">:8086</text>
+    <text x="1464" y="1098" font-size="7.8" font-weight="600" letter-spacing="0.9" text-anchor="end" fill="#7a3f5c">OUTPUT CONTRACT</text>
+    <text x="816" y="1116" font-size="8.6" fill="#55605c">incremental JSON decode · citation guard (drops sources outside the evidence) · marker renumber</text>
+    <text x="816" y="1132" font-size="8.6" fill="#55605c">markdown sanitize · schema validation → answer.completed {text, checklist, citations, markers, usage}</text>
+    <text x="816" y="1148" font-size="8.6" fill="#55605c">records the serving profile and model · finalises only on llm.completed for this correlation_id</text>
+  </g>
+
+  <!-- ═══ offline ═══ -->
+  <g font-family="Inter, 'DejaVu Sans', sans-serif">
+    <rect x="64" y="1266" width="1416" height="80" rx="10" fill="#f6f6f3" stroke="#6f6f66" stroke-opacity="0.55" stroke-width="1.3" stroke-dasharray="7 5" data-bounds="1"/>
+    <circle cx="80" cy="1286" r="3.2" fill="#6f6f66"/>
+    <text x="90" y="1290" font-size="12" font-weight="600" fill="#1d2523">ingest-worker</text>
+    <text x="200" y="1290" font-size="7.8" font-weight="600" letter-spacing="0.9" fill="#6f6f66">BATCH · RESUMABLE</text>
+    <text x="1464" y="1290" font-size="7.8" font-weight="600" letter-spacing="0.9" text-anchor="end" fill="#6f6f66">ingest/{ingest, sqlite_build, qdrant_index, neo4j_graph, verify}</text>
+    <text x="80" y="1308" font-size="8.6" fill="#55605c">final_merged_dataset.xlsx (15,954 papers) → data/papers.jsonl → data/papers.db → Qdrant index (+ optional Neo4j graph) · emits corpus.indexed</text>
+    <text x="80" y="1324" font-size="8.6" fill="#55605c">nothing in the request path reads the spreadsheet: the xlsx is a one-time build input, and ingest.verify prints the cross-store consistency table</text>
+  </g>
+
+  <!-- ═══ event chips + numbered round-trip badges ═══ -->
+  <g font-family="'DejaVu Sans Mono', monospace" font-size="8.2" fill="#3c4644" text-anchor="middle">
+    <rect x="1214" y="283" width="172" height="18" rx="9" fill="#ffffff" stroke="#d8d3c7"/>
+    <text x="1300" y="295">POST /api/chat/stream</text>
+
+    <rect x="1087" y="461" width="86" height="18" rx="9" fill="#ffffff" stroke="#d8d3c7"/>
+    <text x="1130" y="473">chat.requested</text>
+
+    <rect x="337" y="461" width="86" height="18" rx="9" fill="#ffffff" stroke="#d8d3c7" stroke-dasharray="4 3"/>
+    <text x="380" y="473" fill="#7a4a12">model.changed</text>
+
+    <rect x="637" y="648" width="126" height="18" rx="9" fill="#ffffff" stroke="#d8d3c7"/>
+    <text x="700" y="660">chat.requested → route</text>
+
+    <rect x="356" y="864" width="112" height="18" rx="9" fill="#ffffff" stroke="#d8d3c7"/>
+    <text x="412" y="876">retrieval.requested</text>
+
+    <rect x="671" y="864" width="58" height="18" rx="9" fill="#ffffff" stroke="#d8d3c7" stroke-dasharray="4 3"/>
+    <text x="700" y="876" fill="#556335">*.result</text>
+
+    <rect x="932" y="878" width="116" height="18" rx="9" fill="#ffffff" stroke="#d8d3c7"/>
+    <text x="990" y="890">generation.requested</text>
+
+    <rect x="949" y="1050" width="82" height="18" rx="9" fill="#ffffff" stroke="#d8d3c7"/>
+    <text x="990" y="1062">llm.completed</text>
+
+    <rect x="545" y="1218" width="110" height="18" rx="9" fill="#ffffff" stroke="#d8d3c7" stroke-dasharray="4 3"/>
+    <text x="600" y="1230" fill="#55605c">corpus.indexed</text>
+  </g>
+
+  <g transform="translate(1562,760) rotate(-90)">
+    <rect x="-138" y="-9" width="276" height="18" rx="9" fill="#ffffff" stroke="#a9cfc9"/>
+    <text x="0" y="3.5" font-family="'DejaVu Sans Mono', monospace" font-size="8.2" fill="#0f766e" text-anchor="middle">answer.completed · SSE relay: meta → delta* → done</text>
+  </g>
+
+  <g font-family="Inter, 'DejaVu Sans', sans-serif" font-size="8.6" font-weight="700" text-anchor="middle">
+    <circle cx="1195" cy="292" r="8" fill="#1d2523"/>
+    <text x="1195" y="295" fill="#ffffff">1</text>
+    <circle cx="1075" cy="470" r="8" fill="#1d2523"/>
+    <text x="1075" y="473" fill="#ffffff">2</text>
+    <circle cx="625" cy="657" r="8" fill="#1d2523"/>
+    <text x="625" y="660" fill="#ffffff">3</text>
+    <circle cx="344" cy="873" r="8" fill="#1d2523"/>
+    <text x="344" y="876" fill="#ffffff">4</text>
+    <circle cx="659" cy="873" r="8" fill="#1d2523"/>
+    <text x="659" y="876" fill="#ffffff">5</text>
+    <circle cx="920" cy="887" r="8" fill="#1d2523"/>
+    <text x="920" y="890" fill="#ffffff">6</text>
+    <circle cx="937" cy="1059" r="8" fill="#1d2523"/>
+    <text x="937" y="1062" fill="#ffffff">7</text>
+    <circle cx="1520" cy="1150" r="8" fill="#0f766e"/>
+    <text x="1520" y="1153" fill="#ffffff">8</text>
+  </g>
+
+  <!-- ═══ legend ═══ -->
+  <g font-family="Inter, 'DejaVu Sans', sans-serif">
+    <rect x="44" y="1404" width="1456" height="64" rx="12" fill="#ffffff" fill-opacity="0.75" stroke="#e0dcd2" data-bounds="1"/>
+    <g font-size="8.8" fill="#55605c">
+      <rect x="64" y="1421" width="14" height="14" rx="4" fill="#f0f7f5" stroke="#0f766e" stroke-width="1.3"/>
+      <text x="84" y="1432">Client</text>
+      <rect x="192" y="1421" width="14" height="14" rx="4" fill="#edf6f4" stroke="#0b5f59" stroke-width="1.3"/>
+      <text x="212" y="1432">Edge / gateway</text>
+      <rect x="320" y="1421" width="14" height="14" rx="4" fill="#fdf6ec" stroke="#9a5b00" stroke-width="1.3"/>
+      <text x="340" y="1432">Event bus</text>
+      <rect x="448" y="1421" width="14" height="14" rx="4" fill="#eff5f9" stroke="#2f5d7c" stroke-width="1.3"/>
+      <text x="468" y="1432">Orchestration</text>
+      <rect x="576" y="1421" width="14" height="14" rx="4" fill="#f5f8ef" stroke="#556335" stroke-width="1.3"/>
+      <text x="596" y="1432">Retrieval stores</text>
+      <rect x="704" y="1421" width="14" height="14" rx="4" fill="#faf1f6" stroke="#7a3f5c" stroke-width="1.3"/>
+      <text x="724" y="1432">Generation / answer</text>
+      <rect x="832" y="1421" width="14" height="14" rx="4" fill="#f4f5f6" stroke="#4b5563" stroke-width="1.3"/>
+      <text x="852" y="1432">Audit / registry</text>
+      <rect x="960" y="1421" width="14" height="14" rx="4" fill="#f6f6f3" stroke="#6f6f66" stroke-width="1.3" stroke-dasharray="4 3"/>
+      <text x="980" y="1432">Offline / external</text>
+
+      <line x1="1096" y1="1428" x2="1118" y2="1428" stroke="#3c4644" stroke-width="1.7" marker-end="url(#ah-ink)"/>
+      <text x="1124" y="1432">request</text>
+      <line x1="1176" y1="1428" x2="1198" y2="1428" stroke="#556335" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#ah-olive)"/>
+      <text x="1204" y="1432">result / audit</text>
+      <line x1="1284" y1="1428" x2="1306" y2="1428" stroke="#0f766e" stroke-width="1.8" stroke-dasharray="9 5" marker-end="url(#ah-teal)"/>
+      <text x="1312" y="1432">SSE return</text>
+    </g>
+    <text x="82" y="1456" font-size="8.2" fill="#8a938f">① – ⑧ = one turn: request in, tokens streamed out. Every hop is a bus event carrying the same correlation_id; the event log can replay the whole turn.</text>
+  </g>
+
+  <!-- ═══ footer ═══ -->
+    <rect x="36" y="1470" width="1472" height="36" fill="none" data-bounds="1"/>
+  <g font-family="Inter, 'DejaVu Sans', sans-serif" font-size="8.4" fill="#8a938f">
+    <text x="44" y="1494" data-bounds="1">EvalBot · CMU–NIST AIMSEC / MARS (Model-Agnostic Rigorous Sandbox) · modules: core · retrieval · llm · services · ingest · guidance · 9 services + 1 ingest worker · buses: Redis Streams (podman) or MemoryBus (MONOLITH=1)</text>
+    <text x="1500" y="1494" text-anchor="end">evalbot-architecture.svg · v1</text>
+  </g>
+</svg>
+</div>
+  </figure>
+
+    <section class="cards"><div class="card"><h3>One turn, one correlation id</h3><p>Browser <code>sendStream()</code> → gateway <code>:8080</code> → <code>chat.requested</code> → orchestrator <code>:8081</code> → retrieval legs → <code>llm-service</code> → <code>answer-service</code> → SSE <code>meta → delta* → done</code>.</p></div><div class="card"><h3>Models are configuration</h3><p><code>models.yaml</code> → <code>models.db</code> with chat / judge / embed profiles. <code>POST /api/admin/profiles/{name}</code> verifies the slug, publishes <code>model.changed</code>, keeps the old profile on failure.</p></div><div class="card"><h3>Counts come from SQL, not the model</h3><p><code>aggregate</code> intent is answered by <code>sqlite-service</code> alone. Missing legs degrade the answer instead of failing it; <code>meta.degraded[]</code> says what was skipped.</p></div></section>
+
+  <footer class="foot">
+    <span><b>Source:</b> evalbot-architecture-detail.svg · <b>Raster:</b> evalbot-architecture-detail.png</span>
+    <span><b>Rebuild:</b> <code>python3 architecture/build_diagram.py</code></span>
+    <span>Simple view: <a href="evalbot-architecture.html">evalbot-architecture.png</a></span>
+  </footer>
+</div>
+</body>
+</html>

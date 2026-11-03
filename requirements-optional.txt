@@ -1,0 +1,12 @@
+# Only needed for EMBED_PROVIDER=local (real embeddings) or LLM_PROVIDER=hf_local.
+# The default EMBED_PROVIDER=hash is dependency-free and deterministic (tests, offline demos).
+#
+# Install torch from the CPU wheel index first, otherwise pip pulls the ~2.5 GB CUDA build:
+#   uv pip install --python .venv/bin/python --index-url https://download.pytorch.org/whl/cpu torch
+#   uv pip install --python .venv/bin/python sentence-transformers
+# Measured on this box: torch 2.15.0+cpu, sentence-transformers 6.2.0, model load ~85 s cold,
+# ~80 ms/query, ~4 s for 12 documents. google/embeddinggemma-2 loads through the transformers
+# fallback (ST cannot wrap the multimodal model) — verified, dim 768.
+sentence-transformers>=3.0
+transformers>=4.44
+torch>=2.3

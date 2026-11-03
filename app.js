@@ -232,6 +232,10 @@
     download("evalbot-conversation.md", `# ${c.title}\n\n${t}\n`);
   };
 
+  // Real token streaming when the back end offers /api/chat/stream; the animated
+  // reveal is kept as the fallback for demo mode and non-streaming endpoints.
+  let activeStream = null;
+
   async function respond(c) {
     busy = true; sendBtn.disabled = true;
     const col = $(".col", thread) || (thread.innerHTML = "", thread.appendChild(el("div", "col")));
@@ -239,29 +243,86 @@
     msg.append(el("div", "who", `<span class="logo">${ICON.logo}</span>EvalBot`));
     const prose = el("div", "prose", '<div class="typing" aria-label="EvalBot is thinking"><i></i><i></i><i></i></div>');
     msg.append(prose); col.append(msg); scrollDown();
-    try {
-      const payload = c.messages.map(({ role, text }) => ({ role, text }));
-      const reply = await window.sendMessage({ messages: payload, context: { ...context, focus: [...focus] } });
-      const m = { role: "assistant", text: reply.text, checklist: reply.checklist, citations: reply.citations || [], checks: [] };
-      // stream the text in
-      prose.innerHTML = ""; prose.classList.add("cursor");
-      const words = m.text.split(/(\s+)/); let acc = "";
-      for (let i = 0; i < words.length; i += 3) {
-        acc += words.slice(i, i + 3).join("");
-        const stick = atBottom();
-        prose.innerHTML = md(acc);
-        if (stick) scrollDown();
-        await new Promise(r => setTimeout(r, 18));
-      }
+
+    const payload = c.messages.map(({ role, text }) => ({ role, text }));
+    const ctx = { ...context, focus: [...focus] };
+    let acc = "", started = false, doneSeen = false;
+
+    const onDelta = chunk => {
+      if (!started) { started = true; prose.innerHTML = ""; prose.classList.add("cursor"); }
+      acc += chunk;
+      const stick = atBottom();
+      prose.innerHTML = md(acc);
+      if (stick) scrollDown();
+    };
+    const pushPartial = note => {
+      if (!acc) return;
+      const m = { role: "assistant", text: acc, checklist: null, citations: [], checks: [] };
       prose.classList.remove("cursor");
-      c.messages.push(m); save();
-      selMsg = m.citations.length ? c.messages.length - 1 : lastBotIndex(c);
-      renderConvo();
+      prose.innerHTML = md(acc) + (note ? `<p class="error">${esc(note)}</p>` : "");
+      c.messages.push(m); save(); renderConvo();
+    };
+
+    try {
+      const controller = new AbortController();
+      activeStream = controller;
+      const streamed = await window.sendStream({
+        messages: payload,
+        context: ctx,
+        signal: controller.signal,
+        onMeta: meta => {
+          if (!meta || !meta.evidence_count) return;
+          const note = el("p", "src-note", `${meta.evidence_count} papers retrieved${meta.degraded && meta.degraded.length ? " · degraded: " + meta.degraded.join(", ") : ""}`);
+          msg.insertBefore(note, prose);
+        },
+        onDelta,
+        onDone: done => {
+          doneSeen = true;
+          if (!acc) onDelta(done.text || "");
+          acc = done.text || acc;
+          prose.classList.remove("cursor");
+          prose.innerHTML = md(acc);
+          const m = { role: "assistant", text: acc, checklist: done.checklist, citations: done.citations || [], checks: [] };
+          c.messages.push(m); save();
+          selMsg = m.citations.length ? c.messages.length - 1 : lastBotIndex(c);
+          renderConvo();
+        },
+        onError: err => { doneSeen = true; pushPartial(`The model stopped early: ${err.message || "stream error"}`); }
+      });
+
+      if (!streamed) {
+        const reply = await window.sendMessage({ messages: payload, context: ctx });
+        const m = { role: "assistant", text: reply.text, checklist: reply.checklist, citations: reply.citations || [], checks: [] };
+        prose.innerHTML = ""; prose.classList.add("cursor");
+        const words = m.text.split(/(\s+)/);
+        let shown = "";
+        for (let i = 0; i < words.length; i += 3) {
+          shown += words.slice(i, i + 3).join("");
+          const stick = atBottom();
+          prose.innerHTML = md(shown);
+          if (stick) scrollDown();
+          await new Promise(r => setTimeout(r, 18));
+        }
+        prose.classList.remove("cursor");
+        c.messages.push(m); save();
+        selMsg = m.citations.length ? c.messages.length - 1 : lastBotIndex(c);
+        renderConvo();
+      } else if (!doneSeen) {
+        pushPartial("The connection closed before the answer finished.");
+      }
     } catch (e) {
-      prose.innerHTML = `<p class="error">Something went wrong: ${esc(e.message || "request failed")}. Check your connection or API_URL and try again.</p>`;
+      if (acc) pushPartial("Stream interrupted: " + (e.message || "network error"));
+      else prose.innerHTML = `<p class="error">Something went wrong: ${esc(e.message || "request failed")}. Check your connection or API_URL and try again.</p>`;
+    } finally {
+      activeStream = null;
+      busy = false; sendBtn.disabled = !input.value.trim();
     }
-    busy = false; sendBtn.disabled = !input.value.trim();
   }
+
+  // Escape cancels an in-flight answer (the gateway sees the disconnect and aborts upstream).
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && activeStream) { activeStream.abort(); activeStream = null; }
+  });
 
   function send(text) {
     text = text.trim(); if (!text || busy) return;

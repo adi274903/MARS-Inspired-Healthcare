@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 96" width="380" height="96" role="img" aria-label="EvalBot">
+  <title>EvalBot</title>
+  <!-- EvalBot mark: teal rounded square + white plus (same mark as index.html / the favicon).
+       Font stack leads with C059 because the raster path (cairosvg) does not fall through a
+       css-style list; C059 is a Palatino-like serif close to the UI's Newsreader. -->
+  <g id="evalbot-mark" transform="translate(16,16)">
+    <rect x="0" y="0" width="64" height="64" rx="18" fill="#0f766e"/>
+    <path d="M 13.3 32 H 50.7 M 32 13.3 V 50.7" stroke="#ffffff" stroke-width="7" stroke-linecap="round" fill="none"/>
+  </g>
+  <text x="100" y="52" font-family="C059, Newsreader, 'Bitstream Charter', Georgia, serif" font-size="34" font-weight="500" letter-spacing="-0.6" fill="#1d2523">EvalBot</text>
+  <text x="101" y="74" font-family="Inter, 'DejaVu Sans', sans-serif" font-size="11" letter-spacing="0.02" fill="#55605c">Healthcare-AI evaluation assistant</text>
+</svg>

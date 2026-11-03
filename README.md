@@ -42,6 +42,22 @@ Nothing in the request path reads the spreadsheet: the `.xlsx` is a **one-time b
 input**, converted offline into `data/papers.jsonl` + `data/papers.db` (+ a Qdrant index
 and optionally a Neo4j graph).
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="architecture/evalbot-architecture-dark.svg">
+  <img src="architecture/evalbot-architecture.svg" alt="EvalBot — the path of one question: web client to the gateway (:8080, FastAPI + SSE), onto the event bus, through the orchestrator into retrieval, out to Gemma 4, then the answer service back to the client." width="100%">
+</picture>
+
+<details>
+<summary><strong>Detailed architecture</strong> — all nine services, ports and event names</summary>
+
+<br>
+
+<img src="architecture/evalbot-architecture-detail.svg" alt="EvalBot detailed architecture: the static web client, the gateway (:8080, FastAPI, SSE, CORS, correlation ids, keepalives), the event bus (Redis Streams or MemoryBus, at-least-once, idempotent on event_id), the orchestrator (:8081, rule router, RRF k=60, top-8, aggregate/faceted/semantic/multihop), the sqlite, vector and graph retrieval services, the llm service (Gemma 4, model profiles), the answer service (citation guard, marker renumbering), the event log (:8087, append-only events.db, replays a turn) and the control plane (:8090, hot-swap model registry)." width="780">
+
+Rendered from `architecture/`: [`evalbot-architecture-detail.svg`](architecture/evalbot-architecture-detail.svg) · [PNG](architecture/evalbot-architecture-detail.png) · regenerate with `python architecture/build_diagram.py`
+
+</details>
+
 ## Topology
 
 ```

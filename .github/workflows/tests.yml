@@ -13,6 +13,6 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-      - run: pip install -r requirements.txt
+      - run: pip install -r requirements.txt -r requirements-otel.txt
       # Offline suite: mock LLM, hash embeddings, in-memory bus. No keys, no network models.
       - run: python -m pytest -q

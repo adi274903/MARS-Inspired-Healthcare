@@ -11,6 +11,7 @@ from typing import Any
 
 from core.bus import build_bus
 from core.config import get_settings
+from core import otel
 from core.telemetry import log
 from services.common import ServiceSpec
 
@@ -64,6 +65,7 @@ def build_app(settings=None, bus=None):
     app.state.bus = bus
     app.state.specs = specs
     app.state.settings = settings
+    otel.setup(app)  # no-op unless OTEL_ENABLED=1
 
     @app.on_event("startup")
     async def _startup() -> None:
@@ -83,6 +85,7 @@ def build_app(settings=None, bus=None):
             for hook in spec.on_stop:
                 await hook()
         await bus.stop()
+        otel.flush()
 
     @app.get("/healthz")
     async def healthz() -> dict[str, Any]:

@@ -15,6 +15,7 @@ import json
 from typing import Any, AsyncIterator, Callable, Protocol
 
 from core.envelope import EVENTS_STREAM, Event
+from core import otel
 from core.telemetry import log
 
 
@@ -234,7 +235,8 @@ class ServiceLoop:
                 await sub.ack(event)
                 continue
             try:
-                produced = await self.handler(event)
+                with otel.stage(self.name, event):
+                    produced = await self.handler(event)
                 for out in _as_events(produced):
                     await self.bus.publish(out)
             except Exception as exc:  # never kill the loop on a handler bug

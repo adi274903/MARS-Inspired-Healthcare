@@ -20,11 +20,33 @@ done
 
 export TF_VAR_project_id="$PROJECT_ID" TF_VAR_region="$REGION" TF_VAR_image_tag="$TAG" TF_VAR_billing_account_id="$BILLING_ACCOUNT_ID"
 cd "$TF"
-terraform init -input=false -upgrade >/dev/null
+# Terraform uses Application Default Credentials if present, else a fresh gcloud access token per step (1 h lifetime).
+tf() {
+  if [[ ! -f "$HOME/.config/gcloud/application_default_credentials.json" ]]; then
+    export GOOGLE_OAUTH_ACCESS_TOKEN="$(gcloud auth print-access-token)"
+  fi
+  terraform "$@"
+}
+# Newly enabled APIs take minutes to propagate; retry each apply instead of failing on the first 403.
+tf_apply() {
+  for i in 1 2 3 4 5 6; do
+    tf apply -input=false -auto-approve "$@" && return 0
+    echo "apply failed (attempt $i/6), retrying in 30 s" >&2; sleep 30
+  done
+  return 1
+}
+tf init -input=false -upgrade >/dev/null
 
 echo "== 1/3 APIs, registry, secrets, IAM"
-terraform apply -input=false -auto-approve \
-  -target=google_project_service.apis \
+# Terraform itself needs these two before it can manage any other API (a new project has them off).
+gcloud services enable cloudresourcemanager.googleapis.com serviceusage.googleapis.com --project="$PROJECT_ID"
+tf_apply -target=google_project_service.apis
+PROJECT_NUMBER="$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)')"
+for _ in $(seq 1 30); do  # the Compute default SA appears shortly after compute.googleapis.com is enabled
+  gcloud iam service-accounts describe "${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" --project="$PROJECT_ID" >/dev/null 2>&1 && break
+  sleep 10
+done
+tf_apply \
   -target=google_artifact_registry_repository.mars \
   -target=google_project_iam_member.build_sa \
   -target=google_secret_manager_secret.openrouter \
@@ -41,6 +63,17 @@ if ! gcloud secrets versions list mars-admin-token --project="$PROJECT_ID" --for
   openssl rand -hex 32 | tr -d '\n' | gcloud secrets versions add mars-admin-token --project="$PROJECT_ID" --data-file=- >/dev/null
 fi
 
-echo "== 3/3 build image ($TAG) and deploy"
-terraform apply -input=false -auto-approve
-terraform output -raw service_url; echo
+echo "== base image (deps + embedding model + data; built once, code-only layers go on top)"
+REPO="$REGION-docker.pkg.dev/$PROJECT_ID/mars/mars"
+if ! gcloud artifacts docker tags list "$REPO" --project="$PROJECT_ID" --format='value(tag)' | grep -q 'base$'; then
+  if [[ -n "${BASE_SRC_TAG:-}" ]]; then  # reuse an image that already holds everything
+    gcloud artifacts docker tags add "$REPO:$BASE_SRC_TAG" "$REPO:base" --project="$PROJECT_ID"
+  else                                    # fresh project: full build from ./Dockerfile (uploads data/ and models/)
+    gcloud builds submit "$ROOT" --project="$PROJECT_ID" --tag "$REPO:base" --timeout=3600s
+  fi
+fi
+
+echo "== 3/3 build code layer ($TAG) in Cloud Build, then deploy"
+tf apply -input=false -auto-approve -refresh=false -target=terraform_data.image  # single attempt: a failed build should stop, not re-upload 1.9 GB six times
+tf_apply
+tf output -raw service_url; echo

@@ -23,6 +23,7 @@ from pydantic import BaseModel, Field, field_validator
 from core.bus import Bus, ServiceLoop
 from core.envelope import Event, new_event
 from core.registry import get_profile
+from core import otel
 from core.telemetry import log
 from services.common import ServiceSpec
 
@@ -211,6 +212,7 @@ class Gateway:
 
         @router.post("/api/chat")
         async def chat(body: ChatRequest, request: Request) -> dict[str, Any]:
+            started = time.perf_counter()
             event = self._start_event(body, self._profile_for(request.headers.get("x-model-profile"), body))
             queue = self.dispatcher.register(event.correlation_id)
             try:
@@ -218,6 +220,9 @@ class Gateway:
                 terminal = await self._first_terminal(queue, self.chat_timeout + SLACK_S)
             finally:
                 self.dispatcher.unregister(event.correlation_id, queue)
+            outcome = "timeout" if terminal is None else ("error" if terminal.type == "answer.failed" else "ok")
+            otel.record_chat("chat", outcome, (time.perf_counter() - started) * 1000, correlation_id=event.correlation_id)
+            otel.flush()
             if terminal is None:
                 raise HTTPException(504, "model did not answer in time")
             if terminal.type == "answer.failed":
@@ -279,10 +284,15 @@ class Gateway:
         deadline = time.monotonic() + timeout
         partial: list[str] = []
         settled = False
+        started = time.perf_counter()
+        retrieval_ms: float | None = None
+        ttft_ms: float | None = None
+        outcome = "cancelled"
         try:
             while True:
                 remaining = deadline - time.monotonic()
                 if remaining <= 0:
+                    outcome = "timeout"
                     yield _frame("error", {"message": "model did not answer in time", "partial": "".join(partial)})
                     settled = True
                     return
@@ -292,17 +302,22 @@ class Gateway:
                     yield ": keepalive\n\n"
                     continue
                 if incoming.type == "retrieval.completed":
+                    retrieval_ms = (time.perf_counter() - started) * 1000
                     yield _frame("meta", _meta(incoming.payload))
                 elif incoming.type == "llm.token":
+                    if ttft_ms is None:
+                        ttft_ms = (time.perf_counter() - started) * 1000
                     chunk = str(incoming.payload.get("text") or "")
                     partial.append(chunk)
                     yield _frame("delta", {"text": chunk})
                 elif incoming.type == "answer.completed":
                     settled = True
+                    outcome = "ok"
                     yield _frame("done", dict(incoming.payload))
                     return
                 elif incoming.type == "answer.failed":
                     settled = True
+                    outcome = "error"
                     yield _frame(
                         "error",
                         {
@@ -312,6 +327,9 @@ class Gateway:
                     )
                     return
         finally:
+            otel.record_chat("stream", outcome, (time.perf_counter() - started) * 1000, ttft_ms=ttft_ms,
+                             retrieval_ms=retrieval_ms, correlation_id=event.correlation_id)
+            otel.flush()
             self.dispatcher.unregister(event.correlation_id, queue)
             if not settled:
                 _spawn_publish(self.bus, event.child("chat.cancelled", {"reason": CANCEL_REASON_DISCONNECT}, "gateway"))

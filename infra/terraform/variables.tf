@@ -31,8 +31,15 @@ variable "cpu" {
 }
 
 variable "memory" {
-  type    = string
-  default = "4Gi"
+  description = "8Gi: a 4Gi instance was OOM-killed while loading the embedding model (measured 4133 MiB)."
+  type        = string
+  default     = "8Gi"
+}
+
+variable "max_request_concurrency" {
+  description = "Requests one instance handles at once; kept low because each question runs a CPU embedding pass."
+  type        = number
+  default     = 4
 }
 
 variable "max_instances" {

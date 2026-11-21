@@ -5,3 +5,7 @@ output "service_url" {
 output "image" {
   value = local.image
 }
+
+output "dashboard" {
+  value = "https://console.cloud.google.com/monitoring/dashboards?project=${var.project_id}"
+}

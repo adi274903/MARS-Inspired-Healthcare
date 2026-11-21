@@ -1,4 +1,4 @@
-# What Cloud Build uploads. Unlike .gitignore, data/papers.db, data/qdrant and models/ ARE uploaded
+# Full upload (builds the base image). Unlike .gitignore, data/papers.db, data/qdrant and models/ ARE uploaded
 # (they go into the private image only, never to GitHub).
 .gcloudignore
 .git

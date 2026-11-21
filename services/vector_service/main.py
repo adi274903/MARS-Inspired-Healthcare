@@ -112,10 +112,11 @@ def build(settings, bus: Bus) -> ServiceSpec:
 
     async def on_start() -> None:
         log(NAME, "store.ready", collection=store.collection, provider=embedder.provider, available=store.available())
-        # EMBED_WARMUP=1 (Cloud Run): load the embedding model in the background at startup so the first
-        # question after a cold start does not pay the ~85 s model load.
+        # EMBED_WARMUP=1 (Cloud Run): load the embedding model during startup and wait for it. A background
+        # thread would be starved here: request-based billing throttles CPU between requests, but a container
+        # still starting gets full CPU (startup boost), so the load finishes before the first question arrives.
         if os.environ.get("EMBED_WARMUP", "").strip().lower() in {"1", "true", "yes"}:
-            asyncio.get_running_loop().run_in_executor(None, embedder.warm)
+            await asyncio.get_running_loop().run_in_executor(None, embedder.warm)
 
     async def on_stop() -> None:
         store.close()

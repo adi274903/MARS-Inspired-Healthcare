@@ -198,6 +198,10 @@ class Embedder:
         if self._error:
             raise RuntimeError(f"embedder unavailable: {self._error}")
         try:
+            if self.family == "gemma":
+                # sentence-transformers cannot wrap the multimodal EmbeddingGemma; trying it first loads the weights
+                # twice (observed: 4.1 GiB peak, OOM on a 4 GiB Cloud Run instance). Go straight to transformers.
+                raise RuntimeError("skip sentence-transformers for the gemma family")
             from sentence_transformers import SentenceTransformer
 
             model = SentenceTransformer(self.model_name, device=self.device)
@@ -205,7 +209,8 @@ class Embedder:
             self._backend = "sentence-transformers"
             self._model = model
         except Exception as exc:  # multimodal module / missing package: try raw transformers
-            log("embedder", "st.load_failed", model=self.model_name, error=f"{type(exc).__name__}: {exc}")
+            if self.family != "gemma":
+                log("embedder", "st.load_failed", model=self.model_name, error=f"{type(exc).__name__}: {exc}")
             try:
                 self._load_transformers()
             except Exception as exc2:

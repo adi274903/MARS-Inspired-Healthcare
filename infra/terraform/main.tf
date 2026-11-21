@@ -11,8 +11,13 @@ locals {
     "cloudscheduler.googleapis.com",
     "iam.googleapis.com",
     "billingbudgets.googleapis.com",
+    "compute.googleapis.com", # creates the Compute default service account Cloud Build runs as
+    "cloudtrace.googleapis.com",
+    "monitoring.googleapis.com",
   ])
-  image          = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.mars.repository_id}/mars:${var.image_tag}"
+  repo           = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.mars.repository_id}"
+  image          = "${local.repo}/mars:${var.image_tag}"
+  base_image     = "${local.repo}/mars:base"
   build_sa_email = "${data.google_project.this.number}-compute@developer.gserviceaccount.com"
 }
 
@@ -31,6 +36,14 @@ resource "google_artifact_registry_repository" "mars" {
   description            = "MARS-Healthcare images"
   cleanup_policy_dry_run = false
 
+  cleanup_policies {
+    id     = "keep-base"
+    action = "KEEP"
+    condition {
+      tag_state    = "TAGGED"
+      tag_prefixes = ["base"]
+    }
+  }
   cleanup_policies {
     id     = "keep-newest-2"
     action = "KEEP"
@@ -87,6 +100,15 @@ resource "google_service_account" "run" {
   depends_on   = [google_project_service.apis]
 }
 
+# Telemetry: the runtime account writes traces and custom metrics (OpenTelemetry -> Cloud Trace / Cloud Monitoring).
+resource "google_project_iam_member" "run_telemetry" {
+  for_each   = toset(["roles/cloudtrace.agent", "roles/monitoring.metricWriter"])
+  project    = var.project_id
+  role       = each.value
+  member     = "serviceAccount:${google_service_account.run.email}"
+  depends_on = [google_project_service.apis]
+}
+
 resource "google_secret_manager_secret_iam_member" "run_access" {
   for_each  = { openrouter = google_secret_manager_secret.openrouter.id, admin = google_secret_manager_secret.admin.id }
   secret_id = each.value
@@ -100,7 +122,8 @@ resource "terraform_data" "image" {
 
   provisioner "local-exec" {
     working_dir = var.source_dir
-    command     = "gcloud builds submit . --project=${var.project_id} --tag=${local.image} --timeout=3600s"
+    # Code-only layer on the `base` image (deps + model + data); upload excludes data/ and models/.
+    command = "gcloud builds submit . --project=${var.project_id} --config=cloudbuild.app.yaml --ignore-file=.gcloudignore.app --timeout=1800s --substitutions=_BASE=${local.base_image},_IMAGE=${local.image}"
   }
 
   depends_on = [google_artifact_registry_repository.mars, google_project_iam_member.build_sa]
@@ -116,7 +139,7 @@ resource "google_cloud_run_v2_service" "mars" {
   template {
     service_account                  = google_service_account.run.email
     timeout                          = "300s"
-    max_instance_request_concurrency = 10
+    max_instance_request_concurrency = var.max_request_concurrency
 
     scaling {
       min_instance_count = 0
@@ -142,6 +165,14 @@ resource "google_cloud_run_v2_service" "mars" {
       env {
         name  = "CORS_ORIGINS"
         value = var.cors_origins
+      }
+      env {
+        name  = "OTEL_ENABLED"
+        value = "1"
+      }
+      env {
+        name  = "OTEL_EXPORTER"
+        value = "gcp"
       }
       env {
         name = "OPENROUTER_API_KEY"
@@ -173,7 +204,7 @@ resource "google_cloud_run_v2_service" "mars" {
     }
   }
 
-  depends_on = [terraform_data.image, google_secret_manager_secret_iam_member.run_access]
+  depends_on = [terraform_data.image, google_secret_manager_secret_iam_member.run_access, google_project_iam_member.run_telemetry]
 }
 
 # Public demo API (the GitHub Pages UI calls it from the browser).
@@ -199,7 +230,8 @@ resource "google_cloud_scheduler_job" "keep_warm" {
 
   http_target {
     http_method = "GET"
-    uri         = "${google_cloud_run_v2_service.mars.uri}/healthz"
+    # Not /healthz: Cloud Run's front end reserves that path and answers 404 itself, so it never wakes the container.
+    uri = "${google_cloud_run_v2_service.mars.uri}/"
   }
 
   depends_on = [google_project_service.apis]
@@ -232,5 +264,84 @@ resource "google_billing_budget" "mars" {
     threshold_percent = 1.0
   }
 
+  depends_on = [google_project_service.apis]
+}
+
+# ---------------------------------------------------------------- latency dashboard (p50 / p95 / p99)
+locals {
+  pct = { p50 = "ALIGN_PERCENTILE_50", p95 = "ALIGN_PERCENTILE_95", p99 = "ALIGN_PERCENTILE_99" }
+
+  # One chart of three percentile lines for a distribution metric.
+  latency_widget = { for title, spec in {
+    "Cloud Run request latency, all requests (ms)" = {
+      filter = "metric.type=\"run.googleapis.com/request_latencies\" resource.type=\"cloud_run_revision\" resource.label.\"service_name\"=\"${var.service_name}\""
+    }
+    "Question latency, end to end (ms)" = {
+      filter = "metric.type=\"workload.googleapis.com/mars.chat.duration_ms\""
+    }
+    "Time to first token (ms)" = {
+      filter = "metric.type=\"workload.googleapis.com/mars.chat.ttft_ms\""
+    }
+    "Retrieval until answer starts (ms)" = {
+      filter = "metric.type=\"workload.googleapis.com/mars.chat.retrieval_ms\""
+    }
+    } : title => {
+    title = title
+    xyChart = {
+      dataSets = [for label, aligner in local.pct : {
+        plotType       = "LINE"
+        legendTemplate = label
+        timeSeriesQuery = {
+          timeSeriesFilter = {
+            filter = spec.filter
+            aggregation = {
+              alignmentPeriod    = "300s"
+              perSeriesAligner   = aligner
+              crossSeriesReducer = "REDUCE_MEAN"
+            }
+          }
+        }
+      }]
+      yAxis = { scale = "LINEAR" }
+    }
+  } }
+
+  stage_widget = {
+    title = "Per-stage p95 (ms): sqlite / vector / graph / llm / answer"
+    xyChart = {
+      dataSets = [{
+        plotType       = "LINE"
+        legendTemplate = "$${metric.labels.stage}"
+        timeSeriesQuery = {
+          timeSeriesFilter = {
+            filter = "metric.type=\"workload.googleapis.com/mars.stage.duration_ms\""
+            aggregation = {
+              alignmentPeriod    = "300s"
+              perSeriesAligner   = "ALIGN_PERCENTILE_95"
+              crossSeriesReducer = "REDUCE_MEAN"
+              groupByFields      = ["metric.label.\"stage\""]
+            }
+          }
+        }
+      }]
+      yAxis = { scale = "LINEAR" }
+    }
+  }
+}
+
+resource "google_monitoring_dashboard" "latency" {
+  dashboard_json = jsonencode({
+    displayName = "MARS latency (p50 / p95 / p99)"
+    mosaicLayout = {
+      columns = 12
+      tiles = [for i, w in concat(values(local.latency_widget), [local.stage_widget]) : {
+        xPos   = (i % 2) * 6
+        yPos   = floor(i / 2) * 4
+        width  = 6
+        height = 4
+        widget = w
+      }]
+    }
+  })
   depends_on = [google_project_service.apis]
 }

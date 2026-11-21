@@ -6,6 +6,8 @@ error: the orchestrator simply fuses fewer lists.
 """
 from __future__ import annotations
 
+import asyncio
+import os
 from typing import Any
 
 from fastapi import APIRouter
@@ -110,6 +112,10 @@ def build(settings, bus: Bus) -> ServiceSpec:
 
     async def on_start() -> None:
         log(NAME, "store.ready", collection=store.collection, provider=embedder.provider, available=store.available())
+        # EMBED_WARMUP=1 (Cloud Run): load the embedding model in the background at startup so the first
+        # question after a cold start does not pay the ~85 s model load.
+        if os.environ.get("EMBED_WARMUP", "").strip().lower() in {"1", "true", "yes"}:
+            asyncio.get_running_loop().run_in_executor(None, embedder.warm)
 
     async def on_stop() -> None:
         store.close()

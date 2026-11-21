@@ -11,3 +11,9 @@ __pycache__/
 
 # deck build artifacts
 deck/render/
+
+# Cloud deploy (2026-11-20)
+models/
+infra/terraform/.terraform/
+infra/terraform/*.tfstate*
+infra/terraform/*.tfvars

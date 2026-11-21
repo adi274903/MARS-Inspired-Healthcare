@@ -8,6 +8,7 @@ from __future__ import annotations
 import hashlib
 import math
 import re
+import threading
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -66,6 +67,17 @@ class Embedder:
         self._model_dim = 0
         self._target_dim = int(dim) if dim else 0
         self._error: str | None = None
+        # One load at a time: a request arriving while warm() is loading waits instead of loading a second copy.
+        self._load_lock = threading.Lock()
+
+    def warm(self) -> None:
+        """Load the local model ahead of the first query (EMBED_WARMUP=1); failures are logged, never raised."""
+        if self.provider != "local":
+            return
+        try:
+            self._load()
+        except Exception as exc:
+            log("embedder", "warm_failed", model=self.model_name, error=f"{type(exc).__name__}: {exc}")
 
     # -- metadata --------------------------------------------------------
     @property
@@ -175,6 +187,12 @@ class Embedder:
         return out
 
     def _load(self) -> Any:
+        if self._model is not None:
+            return self._model
+        with self._load_lock:
+            return self._load_locked()
+
+    def _load_locked(self) -> Any:
         if self._model is not None:
             return self._model
         if self._error:

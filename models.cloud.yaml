@@ -1,0 +1,20 @@
+# Cloud Run model profiles: the FREE OpenRouter Gemma 4 26B-A4B only, with no paid fallbacks,
+# so the deployed service can never bill for tokens (free models are rate-limited instead).
+profiles:
+  chat:
+    provider: openrouter
+    model: google/gemma-4-26b-a4b-it:free
+    temperature: 0.2
+    max_tokens: 1200
+    fallbacks: []
+  judge:
+    provider: openrouter
+    model: google/gemma-4-26b-a4b-it:free
+    temperature: 0
+    max_tokens: 400
+    fallbacks: []
+  embed:
+    provider: local
+    model: /app/models/embeddinggemma-2
+    dim: 768
+    device: cpu

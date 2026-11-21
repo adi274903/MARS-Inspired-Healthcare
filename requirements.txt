@@ -11,5 +11,5 @@ neo4j>=5.20                # optional at runtime: only used when NEO4J_URI is se
 redis>=5.0                 # RedisStreamsBus; tests and MONOLITH=1 use the in-memory bus
 
 # Dev / test
-pytest>=8.2
+pytest>=9.2.0
 pytest-asyncio>=0.23

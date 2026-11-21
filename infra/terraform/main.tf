@@ -179,8 +179,8 @@ resource "google_cloud_run_v2_service" "mars" {
         value = tostring(var.daily_question_cap)
       }
       env {
-        name  = "GUIDED_JSON" # the free Gemma endpoint has no structured-output support (OpenRouter 404 "no endpoints")
-        value = "0"
+        name  = "GUIDED_JSON" # structured JSON answers (checklist + claims); off if a route 404s on response_format
+        value = var.guided_json
       }
       env {
         name  = "LLM_TIMEOUT" # a hung upstream call must free its concurrency slot quickly

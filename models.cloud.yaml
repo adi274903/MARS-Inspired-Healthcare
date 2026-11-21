@@ -1,18 +1,21 @@
-# Cloud Run model profiles: the FREE OpenRouter Gemma 4 26B-A4B only, with no paid fallbacks,
-# so the deployed service can never bill for tokens (free models are rate-limited instead).
+# Cloud Run model profiles: Gemma 4 26B-A4B on OpenRouter. The paid variant is served by ~15 providers with
+# ~100% uptime (about $0.0004 per question); the shared free pool (one provider, Google AI Studio) stays as the
+# fallback so a paid hiccup costs nothing. Spend is bounded by DAILY_QUESTION_CAP and a credit limit on the key.
 profiles:
   chat:
     provider: openrouter
-    model: google/gemma-4-26b-a4b-it:free
+    model: google/gemma-4-26b-a4b-it
     temperature: 0.2
     max_tokens: 1200
-    fallbacks: []
+    fallbacks:
+      - google/gemma-4-26b-a4b-it:free
   judge:
     provider: openrouter
-    model: google/gemma-4-26b-a4b-it:free
+    model: google/gemma-4-26b-a4b-it
     temperature: 0
     max_tokens: 400
-    fallbacks: []
+    fallbacks:
+      - google/gemma-4-26b-a4b-it:free
   embed:
     provider: local
     model: /app/models/embeddinggemma-2

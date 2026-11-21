@@ -60,6 +60,12 @@ variable "log_retention_days" {
   default     = 7
 }
 
+variable "guided_json" {
+  description = "1 = ask the model for the structured JSON envelope (checklist, claims); 0 = plain streamed text."
+  type        = string
+  default     = "1"
+}
+
 variable "max_instances" {
   description = "Hard cap on instances; with min 0 this bounds the worst-case bill."
   type        = number

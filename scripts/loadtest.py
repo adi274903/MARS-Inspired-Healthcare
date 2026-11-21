@@ -110,11 +110,14 @@ async def main() -> None:
     summary = {
         "url": args.url, "requests": len(results), "concurrency": args.concurrency, "wall_s": round(wall, 1),
         "ok": len(good), "error_rate": round(1 - len(good) / max(1, len(results)), 3),
-        "errors": dict(Counter(r["error"] for r in results if r["error"])),
+        "errors": dict(Counter((r["error"] or "")[:60] for r in results if r["error"])),
         "first_request": {k: (round(v, 1) if isinstance(v, float) else v) for k, v in first.items()},
     }
     for key in ("retrieval_ms", "ttft_ms", "total_ms"):
-        values = [r[key] for r in good if r[key] is not None]
+        # Retrieval (SQL + vector + graph) does not depend on the language model, so it is measured over every
+        # request that got that far, answered or not; time-to-first-token and total need a finished answer.
+        source = results if key == "retrieval_ms" else good
+        values = [r[key] for r in source if r[key] is not None]
         summary[key] = {
             "n": len(values), "p50": pct(values, 50), "p95": pct(values, 95), "p99": pct(values, 99),
             "max": max(values) if values else None, "mean": statistics.fmean(values) if values else None,

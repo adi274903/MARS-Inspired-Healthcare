@@ -8,5 +8,5 @@
 # ~80 ms/query, ~4 s for 12 documents. google/embeddinggemma-2 loads through the transformers
 # fallback (ST cannot wrap the multimodal model) — verified, dim 768.
 sentence-transformers>=3.0
-transformers>=4.44
+transformers>=5.23.0
 torch>=2.3

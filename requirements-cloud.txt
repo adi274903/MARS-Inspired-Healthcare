@@ -1,6 +1,6 @@
 # Cloud Run image (Dockerfile). Pinned to the versions the local .venv runs (checked 2026-11-20).
 # torch is installed first from the CPU wheel index (see Dockerfile), so it is not listed here.
-fastapi==0.162.0
+fastapi==0.163.2
 uvicorn[standard]==0.54.0
 httpx==0.28.1
 pydantic==2.14.2

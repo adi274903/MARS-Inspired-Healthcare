@@ -42,6 +42,24 @@ variable "max_request_concurrency" {
   default     = 4
 }
 
+variable "rate_limit_per_min" {
+  description = "Chat requests per IP per minute before HTTP 429."
+  type        = number
+  default     = 8
+}
+
+variable "daily_question_cap" {
+  description = "Total chat questions per UTC day before HTTP 429 (protects the free LLM quota)."
+  type        = number
+  default     = 400
+}
+
+variable "log_retention_days" {
+  description = "Retention of Cloud Logging (user questions appear in request logs)."
+  type        = number
+  default     = 7
+}
+
 variable "max_instances" {
   description = "Hard cap on instances; with min 0 this bounds the worst-case bill."
   type        = number

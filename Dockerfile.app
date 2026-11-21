@@ -8,3 +8,11 @@ RUN pip install -r /tmp/requirements-otel.txt
 
 # Context excludes data/ and models/ (.gcloudignore.app); those already live in the base image.
 COPY . .
+
+# Run as an unprivileged user. Only what the app must write is owned by it: the embedded Qdrant store (lock files),
+# the SQLite directory (journal files), and a home for library caches. Code and the model stay root-owned, read-only.
+RUN useradd --create-home --uid 10001 app \
+ && chown app /app/data \
+ && chown -R app /app/data/qdrant \
+ && chown app /app/data/papers.db
+USER app

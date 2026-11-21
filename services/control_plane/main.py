@@ -6,6 +6,7 @@ cached provider. Nothing here touches the network.
 """
 from __future__ import annotations
 
+import hmac
 from pathlib import Path
 from typing import Any
 
@@ -23,7 +24,7 @@ ALLOWED_KEYS = ("provider", "model", "temperature", "max_tokens", "fallbacks", "
 
 def _check_token(authorization: str | None, settings) -> None:
     expected = f"Bearer {settings.admin_token}"
-    if not authorization or authorization.strip() != expected:
+    if not authorization or not hmac.compare_digest(authorization.strip().encode(), expected.encode()):
         raise HTTPException(401, "unauthorized", headers={"WWW-Authenticate": "Bearer"})
 
 

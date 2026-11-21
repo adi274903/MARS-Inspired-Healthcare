@@ -12,6 +12,7 @@ from typing import Any
 from core.bus import build_bus
 from core.config import get_settings
 from core import otel
+from core.security import PublicApiGuard
 from core.telemetry import log
 from services.common import ServiceSpec
 
@@ -49,6 +50,7 @@ def build_app(settings=None, bus=None):
     settings = settings or get_settings()
     bus, specs = build_system(settings, bus)
     app = FastAPI(title="evalbot-monolith", version="1.0")
+    app.add_middleware(PublicApiGuard, admin_token=settings.admin_token)  # added first = inside CORS
     app.add_middleware(
         CORSMiddleware, allow_origins=list(settings.cors_origins), allow_methods=["*"], allow_headers=["*"]
     )

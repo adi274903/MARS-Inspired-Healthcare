@@ -167,6 +167,18 @@ resource "google_cloud_run_v2_service" "mars" {
         value = var.cors_origins
       }
       env {
+        name  = "PUBLIC_API_ONLY" # default-deny API, rate limits, header hardening (core/security.py)
+        value = "1"
+      }
+      env {
+        name  = "RATE_LIMIT_PER_MIN"
+        value = tostring(var.rate_limit_per_min)
+      }
+      env {
+        name  = "DAILY_QUESTION_CAP"
+        value = tostring(var.daily_question_cap)
+      }
+      env {
         name  = "OTEL_ENABLED"
         value = "1"
       }
@@ -344,4 +356,13 @@ resource "google_monitoring_dashboard" "latency" {
     }
   })
   depends_on = [google_project_service.apis]
+}
+
+# ---------------------------------------------------------------- privacy: questions appear in request logs, keep them briefly
+resource "google_logging_project_bucket_config" "default" {
+  project        = var.project_id
+  location       = "global"
+  bucket_id      = "_Default"
+  retention_days = var.log_retention_days
+  depends_on     = [google_project_service.apis]
 }

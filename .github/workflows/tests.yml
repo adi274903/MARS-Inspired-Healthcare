@@ -16,3 +16,14 @@ jobs:
       - run: pip install -r requirements.txt -r requirements-otel.txt
       # Offline suite: mock LLM, hash embeddings, in-memory bus. No keys, no network models.
       - run: python -m pytest -q
+
+  audit:
+    # Known-vulnerability scan of every pinned dependency that ships in the Cloud Run image.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pip-audit
+      - run: pip-audit -r requirements-cloud.txt -r requirements-otel.txt --progress-spinner off

@@ -222,7 +222,7 @@ class Gateway:
                 self.dispatcher.unregister(event.correlation_id, queue)
             outcome = "timeout" if terminal is None else ("error" if terminal.type == "answer.failed" else "ok")
             otel.record_chat("chat", outcome, (time.perf_counter() - started) * 1000, correlation_id=event.correlation_id)
-            otel.flush()
+            otel.flush_soon()
             if terminal is None:
                 raise HTTPException(504, "model did not answer in time")
             if terminal.type == "answer.failed":
@@ -329,7 +329,7 @@ class Gateway:
         finally:
             otel.record_chat("stream", outcome, (time.perf_counter() - started) * 1000, ttft_ms=ttft_ms,
                              retrieval_ms=retrieval_ms, correlation_id=event.correlation_id)
-            otel.flush()
+            otel.flush_soon()
             self.dispatcher.unregister(event.correlation_id, queue)
             if not settled:
                 _spawn_publish(self.bus, event.child("chat.cancelled", {"reason": CANCEL_REASON_DISCONNECT}, "gateway"))

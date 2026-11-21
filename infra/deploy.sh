@@ -35,7 +35,11 @@ tf_apply() {
   done
   return 1
 }
-tf init -input=false -upgrade >/dev/null
+for attempt in 1 2 3; do  # show init errors (a registry/network hiccup used to exit silently)
+  tf init -input=false -upgrade -no-color 2>&1 | tail -3 && break
+  [[ $attempt == 3 ]] && { echo "terraform init failed 3 times" >&2; exit 1; }
+  sleep 10
+done
 
 echo "== 1/3 APIs, registry, secrets, IAM"
 # Terraform itself needs these two before it can manage any other API (a new project has them off).

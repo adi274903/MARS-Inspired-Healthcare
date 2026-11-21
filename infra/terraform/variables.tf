@@ -37,9 +37,9 @@ variable "memory" {
 }
 
 variable "max_request_concurrency" {
-  description = "Requests one instance handles at once; kept low because each question runs a CPU embedding pass."
+  description = "Requests one instance handles at once. Streams mostly wait on the network; 4 filled up under load."
   type        = number
-  default     = 4
+  default     = 16
 }
 
 variable "rate_limit_per_min" {

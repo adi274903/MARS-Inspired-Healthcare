@@ -21,6 +21,7 @@ Cloud Run bills CPU only while a request is in flight, so ``flush()`` runs after
 """
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import os
 import time
@@ -32,6 +33,10 @@ from core.telemetry import log
 BUCKETS_MS = [25, 50, 100, 250, 500, 1000, 2000, 3000, 5000, 8000, 12000, 20000, 30000, 60000, 120000]
 
 _state: "_Telemetry | None" = None
+_last_metric_flush = float("-inf")
+#: Cloud Monitoring rejects a series written more often than every 5 s (and drops the whole batch), so metric
+#: flushes are rate limited well above that; the periodic reader (OTEL_METRIC_INTERVAL_MS) covers the rest.
+METRIC_FLUSH_MIN_S = 20.0
 
 
 def enabled() -> bool:
@@ -86,7 +91,7 @@ def setup(app: Any = None, *, exporter: str | None = None, extra_readers: list[A
         })
         readers: list[Any] = list(extra_readers or [])
         span_processors: list[Any] = list(extra_span_processors or [])
-        interval = int(os.environ.get("OTEL_METRIC_INTERVAL_MS", "15000"))
+        interval = int(os.environ.get("OTEL_METRIC_INTERVAL_MS", "60000"))
 
         if kind == "gcp":
             from opentelemetry.exporter.cloud_monitoring import CloudMonitoringMetricsExporter
@@ -139,13 +144,28 @@ def shutdown() -> None:
     _state = None
 
 
-def flush() -> None:
-    """Push buffered spans and metrics now (Cloud Run throttles CPU between requests)."""
+def flush(*, force_metrics: bool = False) -> None:
+    """Push buffered spans now, and metrics at most once per METRIC_FLUSH_MIN_S (Cloud Run throttles idle CPU)."""
+    global _last_metric_flush
     if _state is None:
         return
     with contextlib.suppress(Exception):
         _state.tracer_provider.force_flush(timeout_millis=3000)
-        _state.meter_provider.force_flush(timeout_millis=3000)
+    now = time.monotonic()
+    if force_metrics or now - _last_metric_flush >= METRIC_FLUSH_MIN_S:
+        _last_metric_flush = now
+        with contextlib.suppress(Exception):
+            _state.meter_provider.force_flush(timeout_millis=3000)
+
+
+def flush_soon() -> None:
+    """flush() on a worker thread: the export does network I/O and must never block the event loop."""
+    if _state is None:
+        return
+    try:
+        asyncio.get_running_loop().run_in_executor(None, flush)
+    except RuntimeError:  # no running loop (sync caller)
+        flush()
 
 
 @contextlib.contextmanager

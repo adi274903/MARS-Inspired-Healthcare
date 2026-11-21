@@ -179,6 +179,18 @@ resource "google_cloud_run_v2_service" "mars" {
         value = tostring(var.daily_question_cap)
       }
       env {
+        name  = "GUIDED_JSON" # the free Gemma endpoint has no structured-output support (OpenRouter 404 "no endpoints")
+        value = "0"
+      }
+      env {
+        name  = "LLM_TIMEOUT" # a hung upstream call must free its concurrency slot quickly
+        value = "45"
+      }
+      env {
+        name  = "CHAT_TIMEOUT_S"
+        value = "60"
+      }
+      env {
         name  = "OTEL_ENABLED"
         value = "1"
       }

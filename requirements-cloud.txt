@@ -7,7 +7,7 @@ pydantic==2.14.2
 PyYAML==6.0.3
 qdrant-client==1.20.0
 numpy==2.5.4
-transformers==5.22.1
+transformers==5.23.0
 tokenizers==0.23.3
 safetensors==0.8.0
 huggingface-hub==2.4.0

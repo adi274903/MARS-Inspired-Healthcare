@@ -1,7 +1,7 @@
 # MARS-Healthcare on Cloud Run: every service in one process (MONOLITH=1, in-memory bus),
 # embedded Qdrant + SQLite baked into the image, embeddinggemma-2 on CPU, Gemma 4 26B-A4B (free) via OpenRouter.
 # Built by Cloud Build from the local checkout (data/ and models/ are not in git); see infra/terraform.
-FROM python:3.12-slim
+FROM python:3.15-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \

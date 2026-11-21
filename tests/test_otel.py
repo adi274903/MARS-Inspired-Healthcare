@@ -100,17 +100,15 @@ def test_http_requests_are_instrumented_but_health_checks_are_not():
         otel.shutdown()
 
 
-def test_metric_flush_is_rate_limited(tel, monkeypatch):
+def test_request_path_never_flushes_metrics(tel, monkeypatch):
     """Cloud Monitoring rejects (and drops) a batch when a series is written twice within 5 s."""
     calls = []
     monkeypatch.setattr(otel._state.meter_provider, "force_flush", lambda timeout_millis=0: calls.append(1))
-    monkeypatch.setattr(otel, "_last_metric_flush", float("-inf"))
-    otel.flush()
-    otel.flush()
-    otel.flush()
+    for _ in range(5):
+        otel.flush()
+    assert calls == []
+    otel.flush(force_metrics=True)  # shutdown only
     assert len(calls) == 1
-    otel.flush(force_metrics=True)
-    assert len(calls) == 2
 
 
 async def test_flush_soon_does_not_block_the_event_loop(tel, monkeypatch):

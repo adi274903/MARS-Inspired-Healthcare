@@ -87,7 +87,7 @@ def build_app(settings=None, bus=None):
             for hook in spec.on_stop:
                 await hook()
         await bus.stop()
-        otel.flush()
+        otel.flush(force_metrics=True)
 
     @app.get("/healthz")
     async def healthz() -> dict[str, Any]:

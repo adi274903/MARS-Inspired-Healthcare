@@ -145,15 +145,16 @@ def shutdown() -> None:
 
 
 def flush(*, force_metrics: bool = False) -> None:
-    """Push buffered spans now, and metrics at most once per METRIC_FLUSH_MIN_S (Cloud Run throttles idle CPU)."""
+    """Push buffered spans now. Metrics are NOT flushed on the request path: the periodic reader exports them every
+    OTEL_METRIC_INTERVAL_MS, and a second write to the same series within 5 s makes Cloud Monitoring reject the batch.
+    ``force_metrics`` is for shutdown only (histograms are cumulative, so the next periodic export catches up)."""
     global _last_metric_flush
     if _state is None:
         return
     with contextlib.suppress(Exception):
         _state.tracer_provider.force_flush(timeout_millis=3000)
-    now = time.monotonic()
-    if force_metrics or now - _last_metric_flush >= METRIC_FLUSH_MIN_S:
-        _last_metric_flush = now
+    if force_metrics:
+        _last_metric_flush = time.monotonic()
         with contextlib.suppress(Exception):
             _state.meter_provider.force_flush(timeout_millis=3000)
 
